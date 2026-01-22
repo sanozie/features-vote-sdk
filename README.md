@@ -217,7 +217,20 @@ See the `TestApp` directory for a complete example app demonstrating all feature
 
 ## License
 
-MIT License - See LICENSE file for details
+This project is licensed under the [Elastic License 2.0](./LICENSE).
+
+**You are free to:**
+- Use, copy, and modify the software
+- Distribute the software
+- Contribute to the project
+
+**You may not:**
+- Provide the software as a hosted or managed service
+- Create commercial wrappers or competing products
+- Remove or alter licensing notices
+
+See the [LICENSE](./LICENSE) file for complete terms.
+
 
 ## Support
 
