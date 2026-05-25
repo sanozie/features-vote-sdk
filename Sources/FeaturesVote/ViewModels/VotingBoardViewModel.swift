@@ -28,7 +28,7 @@ public final class VotingBoardViewModel: ObservableObject {
 
     // MARK: - Dependencies
 
-    private let slug: String
+    public let slug: String
     private let featureService: FeatureServiceProtocol
     private let voteService: VoteServiceProtocol
     internal let userService: UserService
@@ -148,9 +148,16 @@ public final class VotingBoardViewModel: ObservableObject {
         }
     }
 
-    /// Refresh features (for pull-to-refresh)
+    /// Refresh features silently (for pull-to-refresh — does not set isLoading)
     public func refresh() async {
-        await loadFeatures()
+        do {
+            let user = userService.getUser()
+            features = try await featureService.fetchFeatures(slug: slug, user: user)
+        } catch let apiError as APIError {
+            error = apiError
+        } catch {
+            self.error = .unknown(error.localizedDescription)
+        }
     }
 
     /// Update a feature in the list (used when returning from detail view)

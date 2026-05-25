@@ -41,17 +41,17 @@ public struct VotingBoardView: View {
             }
             .toolbarBackground(.hidden, for: .navigationBar)
             .navigationBarTitleDisplayMode(.inline)
-            .sheet(isPresented: $showCreateSheet) {
-                if let project = viewModel.project {
-                    CreateFeatureSheet(
-                        slug: project.slug,
-                        availableTags: project.customization.tags ?? [],
-                        theme: theme,
-                        config: config,
-                        localization: localization,
-                        userService: viewModel.userService
-                    )
-                }
+            .sheet(isPresented: $showCreateSheet, onDismiss: {
+                Task { await viewModel.refresh() }
+            }) {
+                CreateFeatureSheet(
+                    slug: viewModel.slug,
+                    availableTags: viewModel.project?.customization.tags ?? [],
+                    theme: theme,
+                    config: config,
+                    localization: localization,
+                    userService: viewModel.userService
+                )
             }
         }
         .task {
@@ -286,26 +286,21 @@ public struct VotingBoardView: View {
             await viewModel.refresh()
         }
         .navigationDestination(for: Feature.self) { feature in
-            if let project = viewModel.project {
-                FeatureDetailView(
-                    feature: feature,
-                    slug: project.slug,
-                    theme: theme,
-                    config: config,
-                    localization: localization,
-                    projectLogoUrl: project.logoUrl,
-                    userService: viewModel.userService,
-                    onFeatureUpdated: { updatedFeature in
-                        viewModel.updateFeature(updatedFeature)
-                    }
-                )
-                .task(id: feature.id) {
-                    // Refresh the list when navigating back (when this view disappears)
+            FeatureDetailView(
+                feature: feature,
+                slug: viewModel.slug,
+                theme: theme,
+                config: config,
+                localization: localization,
+                projectLogoUrl: viewModel.project?.logoUrl,
+                userService: viewModel.userService,
+                onFeatureUpdated: { updatedFeature in
+                    viewModel.updateFeature(updatedFeature)
                 }
-                .onDisappear {
-                    Task {
-                        await viewModel.refresh()
-                    }
+            )
+            .onDisappear {
+                Task {
+                    await viewModel.refresh()
                 }
             }
         }
