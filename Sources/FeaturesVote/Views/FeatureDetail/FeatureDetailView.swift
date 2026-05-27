@@ -9,6 +9,7 @@ public struct FeatureDetailView: View {
     private let config: Configuration
     private let localization: Localization
     private let projectLogoUrl: String?
+    private let projectCustomization: Customization?
     private let onFeatureUpdated: ((Feature) -> Void)?
 
     public init(
@@ -18,147 +19,164 @@ public struct FeatureDetailView: View {
         config: Configuration = .default,
         localization: Localization = .default,
         projectLogoUrl: String? = nil,
+        projectCustomization: Customization? = nil,
         userService: UserService? = nil,
         onFeatureUpdated: ((Feature) -> Void)? = nil
     ) {
         self.slug = slug
+        self.projectLogoUrl = projectLogoUrl
+        self.projectCustomization = projectCustomization
         _viewModel = StateObject(wrappedValue: FeatureDetailViewModel(
             feature: feature,
             slug: slug,
             voteService: VoteService(),
             commentService: CommentService(),
             subscriptionService: SubscriptionService(),
-            userService: userService ?? UserService()
+            userService: userService ?? UserService(),
+            configuration: config,
+            projectCustomization: projectCustomization
         ))
         self.theme = theme
         self.config = config
         self.localization = localization
-        self.projectLogoUrl = projectLogoUrl
         self.onFeatureUpdated = onFeatureUpdated
     }
 
     public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                // Success/Error alerts (matching JS widget)
-                if let message = viewModel.subscriptionMessage {
-                    HStack {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.green)
-                        Text(message)
-                            .font(.system(size: 14))
-                            .foregroundColor(.primary)
-                        Spacer()
-                        Button {
-                            viewModel.dismissSubscriptionMessage()
-                        } label: {
-                            Image(systemName: "xmark")
-                                .font(.system(size: 12))
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    .padding()
-                    .background(Color.green.opacity(0.1))
-                    .cornerRadius(8)
-                    .padding(.horizontal)
-                }
-
-                if let error = viewModel.subscriptionError {
-                    HStack {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundColor(.red)
-                        Text(error)
-                            .font(.system(size: 14))
-                            .foregroundColor(.primary)
-                        Spacer()
-                        Button {
-                            viewModel.dismissSubscriptionMessage()
-                        } label: {
-                            Image(systemName: "xmark")
-                                .font(.system(size: 12))
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    .padding()
-                    .background(Color.red.opacity(0.1))
-                    .cornerRadius(8)
-                    .padding(.horizontal)
-                }
-
-                // Header
-                FeatureHeaderView(
-                    feature: viewModel.feature,
-                    theme: theme,
-                    onVote: {
-                        Task { await viewModel.toggleVote() }
-                    },
-                    onSubscribe: {
-                        Task { await viewModel.toggleSubscription() }
-                    },
-                    isSubscribing: viewModel.isSubscribing,
-                    shouldShowSubscribeButton: viewModel.shouldShowSubscribeButton
-                )
-                .padding()
-
+                subscriptionBanners
+                featureHeader
                 Divider()
-
-                // Description
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Description")
-                        .font(.headline)
-                        .foregroundColor(theme.textPrimaryColor)
-
-                    HTMLText(viewModel.feature.description, fontSize: 16)
-                }
-                .padding(.horizontal)
-
-                // Tags
-                if let tags = viewModel.feature.tags, !tags.isEmpty {
-                    TagsView(tags: tags)
-                        .padding(.horizontal)
-                }
-
+                descriptionSection
+                tagsSection
                 Divider()
-
-                // Created by section
-                HStack(spacing: 8) {
-                    Text("Created by")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-
-                    UserDisplayView(
-                        userId: viewModel.feature.userId,
-                        size: 20,
-                        showName: true,
-                        theme: theme
-                    )
-                }
-                .padding(.horizontal)
-
+                createdBySection
                 Divider()
-
-                // Comments section
-                CommentsListView(
-                    featureId: viewModel.feature.id,
-                    slug: slug,
-                    theme: theme,
-                    config: config,
-                    localization: localization,
-                    projectLogoUrl: projectLogoUrl,
-                    userService: viewModel.userService
-                )
+                commentsSection
             }
         }
+        #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
-        .onChange(of: viewModel.feature.hasSubscribed) { _ in
-            onFeatureUpdated?(viewModel.feature)
+        #endif
+        .onChange(of: viewModel.feature.hasSubscribed) { _ in onFeatureUpdated?(viewModel.feature) }
+        .onChange(of: viewModel.feature.hasVoted)      { _ in onFeatureUpdated?(viewModel.feature) }
+        .onChange(of: viewModel.feature.totalVotes)    { _ in onFeatureUpdated?(viewModel.feature) }
+        .alert("Confirm Vote", isPresented: $viewModel.showVoteConfirmation) {
+            Button("Vote") { Task { await viewModel.confirmPendingVote() } }
+            Button("Cancel", role: .cancel) { viewModel.cancelPendingVote() }
+        } message: {
+            Text("Are you sure you want to cast your vote for this feature?")
         }
-        .onChange(of: viewModel.feature.hasVoted) { _ in
-            onFeatureUpdated?(viewModel.feature)
+        .alert("Unsubscribe", isPresented: $viewModel.showUnsubscribeConfirmation) {
+            Button("Unsubscribe", role: .destructive) { Task { await viewModel.confirmUnsubscribe() } }
+            Button("Cancel", role: .cancel) { viewModel.cancelUnsubscribe() }
+        } message: {
+            Text("Are you sure you want to unsubscribe from notifications for this post?")
         }
-        .onChange(of: viewModel.feature.totalVotes) { _ in
-            onFeatureUpdated?(viewModel.feature)
+        .alert("Sign In Required", isPresented: $viewModel.showPermissionAlert) {
+            Button("OK", role: .cancel) { viewModel.clearPermissionError() }
+        } message: {
+            Text(viewModel.permissionError ?? "")
         }
+    }
+
+    // MARK: - Sub-views
+
+    @ViewBuilder
+    private var subscriptionBanners: some View {
+        if let message = viewModel.subscriptionMessage {
+            infoBanner(text: message, color: .green, icon: "checkmark.circle.fill") {
+                viewModel.dismissSubscriptionMessage()
+            }
+        }
+        if let error = viewModel.subscriptionError {
+            infoBanner(text: error, color: .red, icon: "exclamationmark.triangle.fill") {
+                viewModel.dismissSubscriptionMessage()
+            }
+        }
+    }
+
+    private var featureHeader: some View {
+        FeatureHeaderView(
+            feature: viewModel.feature,
+            theme: theme,
+            config: config,
+            onVote: { viewModel.requestVote() },
+            onSubscribe: { viewModel.requestSubscriptionToggle() },
+            isSubscribing: viewModel.isSubscribing,
+            shouldShowSubscribeButton: viewModel.shouldShowSubscribeButton
+        )
+        .padding()
+    }
+
+    private var descriptionSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Description")
+                .font(.headline)
+                .foregroundColor(theme.textPrimaryColor)
+            HTMLText(viewModel.feature.description, fontSize: 16)
+        }
+        .padding(.horizontal)
+    }
+
+    @ViewBuilder
+    private var tagsSection: some View {
+        if let tags = viewModel.feature.tags, !tags.isEmpty {
+            TagsView(tags: tags)
+                .padding(.horizontal)
+        }
+    }
+
+    private var createdBySection: some View {
+        HStack(spacing: 8) {
+            Text("Created by")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+            UserDisplayView(
+                userId: viewModel.feature.userId,
+                size: 20,
+                showName: true,
+                theme: theme
+            )
+        }
+        .padding(.horizontal)
+    }
+
+    private var commentsSection: some View {
+        CommentsListView(
+            featureId: viewModel.feature.id,
+            slug: slug,
+            theme: theme,
+            config: config,
+            localization: localization,
+            projectLogoUrl: projectLogoUrl,
+            projectCustomization: projectCustomization,
+            userService: viewModel.userService
+        )
+    }
+
+    // MARK: - Helper
+
+    @ViewBuilder
+    private func infoBanner(
+        text: String,
+        color: Color,
+        icon: String,
+        onDismiss: @escaping () -> Void
+    ) -> some View {
+        HStack {
+            Image(systemName: icon).foregroundColor(color)
+            Text(text).font(.system(size: 14)).foregroundColor(.primary)
+            Spacer()
+            Button(action: onDismiss) {
+                Image(systemName: "xmark").font(.system(size: 12)).foregroundColor(.secondary)
+            }
+        }
+        .padding()
+        .background(color.opacity(0.1))
+        .cornerRadius(8)
+        .padding(.horizontal)
     }
 }
 
@@ -166,10 +184,7 @@ public struct FeatureDetailView: View {
 struct FeatureDetailView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationStack {
-            FeatureDetailView(
-                feature: .mock(),
-                slug: "demo"
-            )
+            FeatureDetailView(feature: .mock(), slug: "demo")
         }
     }
 }

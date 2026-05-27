@@ -24,14 +24,35 @@ public final class CreateFeatureViewModel: ObservableObject {
     private let slug: String
     private let featureService: FeatureServiceProtocol
     private let userService: UserService
+    private let config: Configuration
     public let availableTags: [Tag]
+
+    /// Optional project customization for custom popup messages.
+    public var projectCustomization: Customization?
 
     // MARK: - Computed Properties
 
-    /// Whether the form is valid
+    /// Whether the form is ready to submit
     public var isValid: Bool {
-        !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        !description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let hasTitle = !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let hasDescription = !description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let emailOk = !config.behavior.requireEmailForCreate || userService.getUser().email != nil
+        return hasTitle && hasDescription && emailOk
+    }
+
+    /// Whether an email is required but missing (drives inline warning in the view)
+    public var emailRequired: Bool {
+        config.behavior.requireEmailForCreate && userService.getUser().email == nil
+    }
+
+    /// Custom navigation title from project (falls back to localization)
+    public var customHeaderText: String? {
+        projectCustomization?.suggestPopupHeaderText
+    }
+
+    /// Custom success message from project (used after successful submission)
+    public var customSuccessMessage: String? {
+        projectCustomization?.suggestPopupSuccessMsg
     }
 
     /// Validation error message
@@ -42,6 +63,9 @@ public final class CreateFeatureViewModel: ObservableObject {
         if description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return "Description is required"
         }
+        if emailRequired {
+            return "An email address is required to submit a feature request."
+        }
         return nil
     }
 
@@ -51,12 +75,16 @@ public final class CreateFeatureViewModel: ObservableObject {
         slug: String,
         availableTags: [Tag],
         featureService: FeatureServiceProtocol,
-        userService: UserService
+        userService: UserService,
+        configuration: Configuration = .default,
+        projectCustomization: Customization? = nil
     ) {
         self.slug = slug
         self.availableTags = availableTags
         self.featureService = featureService
         self.userService = userService
+        self.config = configuration
+        self.projectCustomization = projectCustomization
     }
 
     // MARK: - Actions

@@ -109,7 +109,8 @@ public struct FeaturesVote {
                     slug: instance.slug,
                     featureService: instance.featureService,
                     voteService: instance.voteService,
-                    userService: instance.userService
+                    userService: instance.userService,
+                    configuration: instance.config
                 ),
                 theme: instance.theme,
                 config: instance.config,

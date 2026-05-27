@@ -6,6 +6,7 @@ public struct FeatureRowView: View {
     let theme: Theme
     let config: Configuration
     let availableTags: [Tag]
+    let upvoteIcon: Image
     let onVote: () -> Void
 
     public init(
@@ -13,12 +14,14 @@ public struct FeatureRowView: View {
         theme: Theme = .default,
         config: Configuration = .default,
         availableTags: [Tag] = [],
+        upvoteIcon: Image = Image(systemName: "chevron.up"),
         onVote: @escaping () -> Void
     ) {
         self.feature = feature
         self.theme = theme
         self.config = config
         self.availableTags = availableTags
+        self.upvoteIcon = upvoteIcon
         self.onVote = onVote
     }
 
@@ -46,19 +49,32 @@ public struct FeatureRowView: View {
                         .padding(.top, 2)
                 }
 
-                // Footer (Avatar & Meta)
+                // Footer (Avatar, comment count, status badge)
                 HStack(spacing: 10) {
-                    // User Display
-                    UserDisplayView(
-                        userId: feature.userId,
-                        size: 24,
-                        showName: true,
-                        theme: theme
-                    )
+                    // User avatar + name
+                    if config.ui.showAvatars {
+                        UserDisplayView(
+                            userId: feature.userId,
+                            size: 24,
+                            showName: true,
+                            theme: theme
+                        )
+                    }
 
                     Spacer()
 
-                    // Status Badge (if shown)
+                    // Comment count
+                    if config.ui.showCommentCount && feature.commentCount > 0 {
+                        HStack(spacing: 4) {
+                            Image(systemName: "bubble.left")
+                                .font(.system(size: 11))
+                            Text("\(feature.commentCount)")
+                                .font(.system(size: 12))
+                        }
+                        .foregroundColor(.secondary)
+                    }
+
+                    // Status badge
                     if config.ui.showStatusBadge {
                         StatusBadgeView(status: feature.status, theme: theme)
                     }
@@ -66,11 +82,12 @@ public struct FeatureRowView: View {
                 .padding(.top, 6)
             }
 
-            // Vote Button (Right aligned)
+            // Vote Button (right-aligned)
             VoteButtonView(
                 voteCount: feature.totalVotes,
                 hasVoted: feature.hasVoted,
                 theme: theme,
+                upvoteIcon: upvoteIcon,
                 onTap: onVote
             )
         }
@@ -100,7 +117,7 @@ struct FeatureRowView_Previews: PreviewProvider {
     static var previews: some View {
         ZStack {
             Color(hex: "#F3F4F6").edgesIgnoringSafeArea(.all)
-            
+
             VStack(spacing: 16) {
                 FeatureRowView(
                     feature: .mock(),

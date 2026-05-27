@@ -47,11 +47,30 @@ public struct RoadmapView: View {
                         }
                     }
                 }
+                // Confirmation dialog for voting
+                .alert("Confirm Vote", isPresented: $viewModel.showVoteConfirmation) {
+                    Button("Vote") {
+                        Task { await viewModel.confirmPendingVote() }
+                    }
+                    Button("Cancel", role: .cancel) {
+                        viewModel.cancelPendingVote()
+                    }
+                } message: {
+                    Text("Are you sure you want to cast your vote for this feature?")
+                }
+                // Permission error (anonymous user blocked)
+                .alert(
+                    "Sign In Required",
+                    isPresented: $viewModel.showPermissionAlert,
+                    actions: { Button("OK", role: .cancel) { viewModel.clearPermissionError() } },
+                    message: { Text(viewModel.permissionError ?? "") }
+                )
                 .sheet(isPresented: $showCreateSheet) {
                     if let project = viewModel.project {
                         CreateFeatureSheet(
                             slug: project.slug,
                             availableTags: project.customization.tags ?? [],
+                            projectCustomization: project.customization,
                             theme: theme,
                             config: config,
                             localization: localization,
@@ -69,6 +88,7 @@ public struct RoadmapView: View {
                                 config: config,
                                 localization: localization,
                                 projectLogoUrl: project.logoUrl,
+                                projectCustomization: project.customization,
                                 userService: viewModel.userService,
                                 onFeatureUpdated: { updatedFeature in
                                     viewModel.updateFeature(updatedFeature)
@@ -144,9 +164,7 @@ public struct RoadmapView: View {
             config: config,
             availableTags: viewModel.project?.customization.tags ?? [],
             onVote: { feature in
-                Task {
-                    await viewModel.toggleVote(for: feature)
-                }
+                viewModel.requestVote(for: feature)
             },
             onFeatureTap: { feature in
                 selectedFeature = feature

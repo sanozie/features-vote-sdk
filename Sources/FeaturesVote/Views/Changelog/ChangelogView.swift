@@ -87,7 +87,9 @@ public struct ChangelogView: View {
                 }
             }
             .navigationTitle("Changelog")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.large)
+            #endif
             .task {
                 await viewModel.loadReleases()
             }

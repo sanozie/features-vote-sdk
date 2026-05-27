@@ -1,5 +1,10 @@
 import Foundation
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#elseif canImport(AppKit)
+import AppKit
+#endif
 
 /// ViewModel for comments section
 @MainActor
@@ -13,16 +18,21 @@ public final class CommentsViewModel: ObservableObject {
     @Published private(set) var isSubmitting = false
     @Published private(set) var error: APIError?
 
+    // Permission alert
+    @Published public var permissionError: String?
+
     // MARK: - Dependencies
 
     private let featureId: String
     private let slug: String
     private let commentService: CommentServiceProtocol
     private let userService: UserService
+    private let config: Configuration
+    private let projectCustomization: Customization?
 
     // MARK: - Computed Properties
 
-    /// Whether the comment form is valid
+    /// Whether the comment form text is non-empty
     public var isValid: Bool {
         !commentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
@@ -31,18 +41,35 @@ public final class CommentsViewModel: ObservableObject {
         userService.isAnonymous
     }
 
+    /// Whether anonymous comments are blocked (local config OR server override)
+    public var isAnonymousCommentingBlocked: Bool {
+        let localBlock = !config.behavior.allowAnonymousComments
+        let serverBlock = projectCustomization?.isAnonDisabled ?? false
+        return (localBlock || serverBlock) && isAnonymous
+    }
+
+    /// Message to show when anon commenting is blocked
+    public var anonBlockedMessage: String {
+        projectCustomization?.disabledAnonMessage
+            ?? "Please sign in to leave a comment."
+    }
+
     // MARK: - Initialization
 
     public init(
         featureId: String,
         slug: String,
         commentService: CommentServiceProtocol,
-        userService: UserService
+        userService: UserService,
+        configuration: Configuration = .default,
+        projectCustomization: Customization? = nil
     ) {
         self.featureId = featureId
         self.slug = slug
         self.commentService = commentService
         self.userService = userService
+        self.config = configuration
+        self.projectCustomization = projectCustomization
     }
 
     // MARK: - Actions
@@ -75,7 +102,11 @@ public final class CommentsViewModel: ObservableObject {
 
     /// Submit a new comment
     public func submitComment() async -> Bool {
-        guard isValid else {
+        guard isValid else { return false }
+
+        // Block anonymous comments when disallowed
+        if isAnonymousCommentingBlocked {
+            permissionError = anonBlockedMessage
             return false
         }
 
@@ -94,11 +125,9 @@ public final class CommentsViewModel: ObservableObject {
                 fileName: "image.jpg"
             )
 
-            // Reset form
             commentText = ""
             selectedImage = nil
 
-            // Reload comments
             await loadComments()
 
             isSubmitting = false
@@ -114,15 +143,19 @@ public final class CommentsViewModel: ObservableObject {
         }
     }
 
+    /// Clears the permission error.
+    public func clearPermissionError() {
+        permissionError = nil
+    }
+
     /// Add a reaction to a comment
     public func addReaction(to comment: Comment, emoji: String) async {
         do {
             let user = userService.getUser()
             try await commentService.addReaction(commentId: comment.id, emoji: emoji, user: user)
 
-            // Optimistically update local state
             if let index = comments.firstIndex(where: { $0.id == comment.id }) {
-                var updatedComment = comments[index]
+                let updatedComment = comments[index]
                 var reactions = updatedComment.reactions
                 reactions[emoji, default: 0] += 1
                 var userReactions = updatedComment.userReactions
@@ -157,9 +190,8 @@ public final class CommentsViewModel: ObservableObject {
             let user = userService.getUser()
             try await commentService.removeReaction(commentId: comment.id, emoji: emoji, user: user)
 
-            // Optimistically update local state
             if let index = comments.firstIndex(where: { $0.id == comment.id }) {
-                var updatedComment = comments[index]
+                let updatedComment = comments[index]
                 var reactions = updatedComment.reactions
                 if let count = reactions[emoji], count > 0 {
                     reactions[emoji] = count - 1

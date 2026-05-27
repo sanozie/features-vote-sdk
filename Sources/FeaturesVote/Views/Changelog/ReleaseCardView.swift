@@ -137,11 +137,16 @@ struct GlassmorphismReadMoreButton: View {
             // White background for smoother transition (adapts to dark mode)
             colorScheme == .dark ? Color.black : Color.white
         )
+        #if canImport(UIKit)
         .cornerRadius(12, corners: [.bottomLeft, .bottomRight])
+        #else
+        .cornerRadius(12)
+        #endif
     }
 }
 
 /// Helper to apply corner radius to specific corners
+#if canImport(UIKit)
 extension View {
     func cornerRadius(_ radius: CGFloat, corners: UIRectCorner) -> some View {
         clipShape(RoundedCorner(radius: radius, corners: corners))
@@ -161,6 +166,13 @@ struct RoundedCorner: Shape {
         return Path(path.cgPath)
     }
 }
+#else
+extension View {
+    func cornerRadius(_ radius: CGFloat, corners: Any) -> some View {
+        self.clipShape(RoundedRectangle(cornerRadius: radius))
+    }
+}
+#endif
 
 #if DEBUG
 struct ReleaseCardView_Previews: PreviewProvider {

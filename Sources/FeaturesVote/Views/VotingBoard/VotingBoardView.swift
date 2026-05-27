@@ -26,12 +26,12 @@ public struct VotingBoardView: View {
     public var body: some View {
         NavigationStack {
             ZStack {
-                // Background
                 theme.backgroundColor
                     .ignoresSafeArea()
-                
+
                 content
             }
+            .tint(theme.primaryColor)
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Text(viewModel.project?.customization.votingBoardTitle ?? localization.votingBoardTitle)
@@ -39,14 +39,35 @@ public struct VotingBoardView: View {
                         .foregroundColor(theme.textPrimaryColor)
                 }
             }
+            #if os(iOS)
             .toolbarBackground(.hidden, for: .navigationBar)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
+            // Confirmation dialog for voting
+            .alert("Confirm Vote", isPresented: $viewModel.showVoteConfirmation) {
+                Button("Vote") {
+                    Task { await viewModel.confirmPendingVote() }
+                }
+                Button("Cancel", role: .cancel) {
+                    viewModel.cancelPendingVote()
+                }
+            } message: {
+                Text("Are you sure you want to cast your vote for this feature?")
+            }
+            // Permission error (anonymous user blocked)
+            .alert(
+                "Sign In Required",
+                isPresented: $viewModel.showPermissionAlert,
+                actions: { Button("OK", role: .cancel) { viewModel.clearPermissionError() } },
+                message: { Text(viewModel.permissionError ?? "") }
+            )
             .sheet(isPresented: $showCreateSheet, onDismiss: {
                 Task { await viewModel.refresh() }
             }) {
                 CreateFeatureSheet(
                     slug: viewModel.slug,
                     availableTags: viewModel.project?.customization.tags ?? [],
+                    projectCustomization: viewModel.project?.customization,
                     theme: theme,
                     config: config,
                     localization: localization,
@@ -60,21 +81,20 @@ public struct VotingBoardView: View {
         }
     }
 
+    // MARK: - Content
+
     @ViewBuilder
     private var content: some View {
         if viewModel.isLoading && viewModel.features.isEmpty {
             LoadingView()
         } else if let error = viewModel.error, viewModel.features.isEmpty {
             ErrorView(error: error) {
-                Task {
-                    await viewModel.loadFeatures()
-                }
+                Task { await viewModel.loadFeatures() }
             }
         } else {
-            // Main Content with Header and List
             VStack(spacing: 0) {
                 headerView
-                
+
                 if viewModel.filteredFeatures.isEmpty {
                     emptyState
                 } else {
@@ -83,12 +103,12 @@ public struct VotingBoardView: View {
             }
         }
     }
-    
+
+    // MARK: - Header
+
     private var headerView: some View {
         VStack(spacing: 0) {
-            // Top Row: Tabs, Search (collapsed/expanded), Create Button
             HStack(spacing: 8) {
-                // Tabs (only show when search is collapsed) - Takes free space
                 if !isSearchExpanded {
                     FilterTabsView(selectedTab: $viewModel.selectedTab, theme: theme)
                         .frame(maxWidth: .infinity)
@@ -97,18 +117,14 @@ public struct VotingBoardView: View {
                             removal: .opacity.combined(with: .scale(scale: 0.9))
                         ))
                 }
-                
-                // Collapsible Search
+
                 if isSearchExpanded {
-                    // Expanded Search - Takes remaining space
                     expandedSearchView
                         .frame(maxWidth: .infinity)
                 } else {
-                    // Collapsed Search Button (to the left of Create)
                     collapsedSearchButton
                 }
-                
-                // Create Button (only show when search is collapsed)
+
                 if !isSearchExpanded {
                     createButton
                         .transition(.asymmetric(
@@ -127,9 +143,9 @@ public struct VotingBoardView: View {
                 .ignoresSafeArea(edges: .top)
         )
     }
-    
+
     // MARK: - Search Components
-    
+
     private var collapsedSearchButton: some View {
         Button {
             withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
@@ -139,7 +155,7 @@ public struct VotingBoardView: View {
         } label: {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 15, weight: .medium))
-                .foregroundColor(Color.gray.opacity(0.7))
+                .foregroundColor(theme.primaryColor.opacity(0.8))
                 .frame(width: 40, height: 40)
                 .background(
                     RoundedRectangle(cornerRadius: 10)
@@ -153,24 +169,22 @@ public struct VotingBoardView: View {
         }
         .buttonStyle(.plain)
     }
-    
+
     private var expandedSearchView: some View {
         HStack(spacing: 10) {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 15, weight: .medium))
                 .foregroundColor(theme.primaryColor.opacity(0.7))
-            
+
             TextField(localization.searchPlaceholder, text: $viewModel.searchText)
                 .font(.system(size: 15))
                 .textFieldStyle(.plain)
                 .focused($isSearchFocused)
                 .submitLabel(.search)
                 .onSubmit {
-                    // Dismiss keyboard but keep search open
                     isSearchFocused = false
                 }
-            
-            // Clear text button (if text exists)
+
             if !viewModel.searchText.isEmpty {
                 Button {
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
@@ -187,10 +201,11 @@ public struct VotingBoardView: View {
                     removal: .opacity.combined(with: .scale(scale: 0.8))
                 ))
             }
-            
-            // Close button
+
+            // Close button — clears search text too
             Button {
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                    viewModel.searchText = ""
                     isSearchExpanded = false
                     isSearchFocused = false
                 }
@@ -217,7 +232,7 @@ public struct VotingBoardView: View {
             removal: .scale(scale: 0.95).combined(with: .opacity).combined(with: .move(edge: .leading))
         ))
     }
-    
+
     private var createButton: some View {
         Button {
             withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
@@ -237,14 +252,11 @@ public struct VotingBoardView: View {
                     )
                 )
                 .cornerRadius(10)
-                .shadow(
-                    color: theme.primaryColor.opacity(0.3),
-                    radius: 4,
-                    x: 0,
-                    y: 2
-                )
+                .shadow(color: theme.primaryColor.opacity(0.3), radius: 4, x: 0, y: 2)
         }
     }
+
+    // MARK: - Empty / List
 
     private var emptyState: some View {
         VStack {
@@ -255,63 +267,80 @@ public struct VotingBoardView: View {
     }
 
     private var featureList: some View {
-        ScrollView {
-            LazyVStack(spacing: 20) {
-                ForEach(viewModel.filteredFeatures) { feature in
-                    NavigationLink(value: feature) {
-                        FeatureRowView(
-                            feature: feature,
-                            theme: theme,
-                            config: config,
-                            availableTags: viewModel.project?.customization.tags ?? [],
-                            onVote: {
-                                Task {
-                                    await viewModel.toggleVote(for: feature)
-                                }
-                            }
-                        )
+        featureScrollView
+            .navigationDestination(for: Feature.self) { feature in
+                // Always resolve the freshest copy from the viewModel to capture any
+                // vote changes made from the list before navigating.
+                let latestFeature = viewModel.features.first(where: { $0.id == feature.id }) ?? feature
+                FeatureDetailView(
+                    feature: latestFeature,
+                    slug: viewModel.slug,
+                    theme: theme,
+                    config: config,
+                    localization: localization,
+                    projectLogoUrl: viewModel.project?.logoUrl,
+                    projectCustomization: viewModel.project?.customization,
+                    userService: viewModel.userService,
+                    onFeatureUpdated: { updatedFeature in
+                        viewModel.updateFeature(updatedFeature)
                     }
-                    .buttonStyle(.plain)
+                )
+                .onDisappear {
+                    Task { await viewModel.refresh() }
                 }
-
-                // Footer with user info and powered by
-                footerView
-                    .padding(.top, 20)
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 8)
-            .padding(.bottom, 24)
-        }
-        .refreshable {
-            await viewModel.refresh()
-        }
-        .navigationDestination(for: Feature.self) { feature in
-            FeatureDetailView(
-                feature: feature,
-                slug: viewModel.slug,
-                theme: theme,
-                config: config,
-                localization: localization,
-                projectLogoUrl: viewModel.project?.logoUrl,
-                userService: viewModel.userService,
-                onFeatureUpdated: { updatedFeature in
-                    viewModel.updateFeature(updatedFeature)
-                }
-            )
-            .onDisappear {
-                Task {
-                    await viewModel.refresh()
-                }
+    }
+
+    /// The scroll view, conditionally wrapped with `.refreshable` based on config.
+    @ViewBuilder
+    private var featureScrollView: some View {
+        if config.ui.enablePullToRefresh {
+            ScrollView {
+                featureListContent
+            }
+            .refreshable {
+                await viewModel.refresh()
+            }
+        } else {
+            ScrollView {
+                featureListContent
             }
         }
     }
+
+    private var featureListContent: some View {
+        LazyVStack(spacing: 20) {
+            ForEach(viewModel.filteredFeatures) { feature in
+                NavigationLink(value: feature) {
+                    FeatureRowView(
+                        feature: feature,
+                        theme: theme,
+                        config: config,
+                        availableTags: viewModel.project?.customization.tags ?? [],
+                        upvoteIcon: config.buttons.upvoteIcon,
+                        onVote: {
+                            viewModel.requestVote(for: feature)
+                        }
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+
+            footerView
+                .padding(.top, 20)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 8)
+        .padding(.bottom, 24)
+    }
+
+    // MARK: - Footer
 
     private var footerView: some View {
         VStack(spacing: 16) {
             Divider()
 
             HStack {
-                // User info on the left
                 HStack(spacing: 8) {
                     let user = viewModel.userService.getUser()
                     AvatarView(
@@ -340,15 +369,17 @@ public struct VotingBoardView: View {
 
                 Spacer()
 
-                // Powered by Features.Vote on the right
-                Link(destination: URL(string: "https://features.vote")!) {
-                    HStack(spacing: 4) {
-                        Text("Powered by")
-                            .font(.system(size: 10))
-                            .foregroundColor(.secondary)
-                        Text("Features.Vote")
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundColor(theme.primaryColor)
+                // Watermark: respect both local config and server override
+                if viewModel.shouldShowWatermark {
+                    Link(destination: URL(string: "https://features.vote")!) {
+                        HStack(spacing: 4) {
+                            Text("Powered by")
+                                .font(.system(size: 10))
+                                .foregroundColor(.secondary)
+                            Text("Features.Vote")
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundColor(theme.primaryColor)
+                        }
                     }
                 }
             }
@@ -362,6 +393,7 @@ public struct VotingBoardView: View {
 struct CreateFeatureSheet: View {
     let slug: String
     let availableTags: [Tag]
+    let projectCustomization: Customization?
     let theme: Theme
     let config: Configuration
     let localization: Localization
@@ -375,6 +407,7 @@ struct CreateFeatureSheet: View {
             theme: theme,
             config: config,
             localization: localization,
+            projectCustomization: projectCustomization,
             onSuccess: {
                 dismiss()
             },

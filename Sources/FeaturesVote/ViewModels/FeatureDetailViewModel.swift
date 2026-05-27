@@ -7,12 +7,17 @@ public final class FeatureDetailViewModel: ObservableObject {
     // MARK: - Published State
 
     @Published public var feature: Feature
-    @Published private(set) var comments: [Comment] = []
     @Published private(set) var isLoadingComments = false
     @Published private(set) var isSubscribing = false
     @Published private(set) var error: APIError?
     @Published public var subscriptionMessage: String?
     @Published public var subscriptionError: String?
+
+    // Permission / confirmation alerts
+    @Published public var permissionError: String?
+    @Published public var showPermissionAlert = false
+    @Published public var showVoteConfirmation = false
+    @Published public var showUnsubscribeConfirmation = false
 
     // MARK: - Dependencies
 
@@ -21,6 +26,8 @@ public final class FeatureDetailViewModel: ObservableObject {
     private let commentService: CommentServiceProtocol
     private let subscriptionService: SubscriptionServiceProtocol
     internal let userService: UserService
+    private let config: Configuration
+    private let projectCustomization: Customization?
 
     // MARK: - Computed Properties
 
@@ -34,6 +41,16 @@ public final class FeatureDetailViewModel: ObservableObject {
         return user.email != nil
     }
 
+    /// Whether the project or local config has disabled anonymous actions
+    private var isAnonDisabled: Bool {
+        projectCustomization?.isAnonDisabled ?? false
+    }
+
+    private var anonBlockedMessage: String {
+        projectCustomization?.disabledAnonMessage
+            ?? "Please sign in to perform this action."
+    }
+
     // MARK: - Initialization
 
     public init(
@@ -42,7 +59,9 @@ public final class FeatureDetailViewModel: ObservableObject {
         voteService: VoteServiceProtocol,
         commentService: CommentServiceProtocol,
         subscriptionService: SubscriptionServiceProtocol,
-        userService: UserService
+        userService: UserService,
+        configuration: Configuration = .default,
+        projectCustomization: Customization? = nil
     ) {
         self.feature = feature
         self.slug = slug
@@ -50,79 +69,84 @@ public final class FeatureDetailViewModel: ObservableObject {
         self.commentService = commentService
         self.subscriptionService = subscriptionService
         self.userService = userService
+        self.config = configuration
+        self.projectCustomization = projectCustomization
     }
 
-    // MARK: - Actions
+    // MARK: - Vote Actions
 
-    /// Load comments for the feature
-    public func loadComments() async {
-        isLoadingComments = true
-        error = nil
-
-        do {
-            let user = userService.getUser()
-            comments = try await commentService.fetchComments(featureId: feature.id, user: user)
-        } catch let apiError as APIError {
-            error = apiError
-        } catch {
-            self.error = .unknown(error.localizedDescription)
+    /// Entry point for a vote tap. Shows confirmation when `confirmVoting` is on.
+    public func requestVote() {
+        // Check anonymous permission
+        if (isAnonymous && !config.behavior.allowAnonymousVoting) || (isAnonymous && isAnonDisabled) {
+            permissionError = anonBlockedMessage
+            showPermissionAlert = true
+            return
         }
 
-        isLoadingComments = false
+        if config.behavior.confirmVoting {
+            showVoteConfirmation = true
+        } else {
+            Task { await toggleVote() }
+        }
     }
 
-    /// Toggle vote on the feature
+    /// Called when user confirms the vote dialog.
+    public func confirmPendingVote() async {
+        showVoteConfirmation = false
+        await toggleVote()
+    }
+
+    /// Called when user cancels the vote dialog.
+    public func cancelPendingVote() {
+        showVoteConfirmation = false
+    }
+
+    /// Toggle vote on the feature (internal — use `requestVote()` from the UI layer).
     public func toggleVote() async {
         let originalVoteState = feature.hasVoted
         let originalVoteCount = feature.totalVotes
+        let isVoting = !feature.hasVoted
 
         // Optimistic update
-        feature.hasVoted.toggle()
-        feature = Feature(
-            id: feature.id,
-            title: feature.title,
-            description: feature.description,
-            totalVotes: feature.hasVoted ? feature.totalVotes + 1 : max(0, feature.totalVotes - 1),
-            status: feature.status,
-            createdAt: feature.createdAt,
-            updatedAt: feature.updatedAt,
-            commentCount: feature.commentCount,
-            hasVoted: feature.hasVoted,
-            hasSubscribed: feature.hasSubscribed,
-            userId: feature.userId,
-            releaseDate: feature.releaseDate,
-            tags: feature.tags,
-            fileUrl: feature.fileUrl,
-            releaseId: feature.releaseId
-        )
+        if config.behavior.enableOptimisticUpdates {
+            applyVote(isVoting: isVoting)
+        }
 
         do {
             let user = userService.getUser()
 
-            if feature.hasVoted {
+            if isVoting {
                 try await voteService.upvote(featureId: feature.id, user: user)
             } else {
                 try await voteService.downvote(featureId: feature.id, user: user)
             }
+
+            // Non-optimistic: apply after confirmed success
+            if !config.behavior.enableOptimisticUpdates {
+                applyVote(isVoting: isVoting)
+            }
         } catch {
-            // Revert on failure
-            feature = Feature(
-                id: feature.id,
-                title: feature.title,
-                description: feature.description,
-                totalVotes: originalVoteCount,
-                status: feature.status,
-                createdAt: feature.createdAt,
-                updatedAt: feature.updatedAt,
-                commentCount: feature.commentCount,
-                hasVoted: originalVoteState,
-                hasSubscribed: feature.hasSubscribed,
-                userId: feature.userId,
-                releaseDate: feature.releaseDate,
-                tags: feature.tags,
-                fileUrl: feature.fileUrl,
-                releaseId: feature.releaseId
-            )
+            // Revert only if we applied an optimistic update
+            if config.behavior.enableOptimisticUpdates {
+                feature = Feature(
+                    id: feature.id,
+                    title: feature.title,
+                    description: feature.description,
+                    totalVotes: originalVoteCount,
+                    status: feature.status,
+                    createdAt: feature.createdAt,
+                    updatedAt: feature.updatedAt,
+                    commentCount: feature.commentCount,
+                    hasVoted: originalVoteState,
+                    hasSubscribed: feature.hasSubscribed,
+                    userId: feature.userId,
+                    releaseDate: feature.releaseDate,
+                    tags: feature.tags,
+                    fileUrl: feature.fileUrl,
+                    releaseId: feature.releaseId
+                )
+            }
 
             if let apiError = error as? APIError {
                 self.error = apiError
@@ -132,24 +156,41 @@ public final class FeatureDetailViewModel: ObservableObject {
         }
     }
 
+    // MARK: - Subscription Actions
+
+    /// Entry point for subscribe/unsubscribe. Shows confirmation before unsubscribing when configured.
+    public func requestSubscriptionToggle() {
+        if feature.hasSubscribed && config.behavior.confirmUnsubscribe {
+            showUnsubscribeConfirmation = true
+        } else {
+            Task { await toggleSubscription() }
+        }
+    }
+
+    /// Called when the user confirms the unsubscribe dialog.
+    public func confirmUnsubscribe() async {
+        showUnsubscribeConfirmation = false
+        await toggleSubscription()
+    }
+
+    /// Cancel the unsubscribe confirmation.
+    public func cancelUnsubscribe() {
+        showUnsubscribeConfirmation = false
+    }
+
     /// Toggle subscription to the feature (matching JS widget behavior)
     public func toggleSubscription() async {
-        // Clear previous messages
         subscriptionMessage = nil
         subscriptionError = nil
-
-        // Start loading
         isSubscribing = true
 
         let originalState = feature.hasSubscribed
         let user = userService.getUser()
 
-        // Optimistic update
         feature.hasSubscribed.toggle()
 
         do {
             if feature.hasSubscribed {
-                // Subscribe
                 try await subscriptionService.subscribe(
                     featureId: feature.id,
                     slug: slug,
@@ -157,7 +198,6 @@ public final class FeatureDetailViewModel: ObservableObject {
                 )
                 subscriptionMessage = "Successfully subscribed to email notifications for this post."
             } else {
-                // Unsubscribe
                 guard let email = user.email else {
                     throw APIError.unauthorized
                 }
@@ -168,10 +208,8 @@ public final class FeatureDetailViewModel: ObservableObject {
                 subscriptionMessage = "Successfully unsubscribed from email notifications for this post."
             }
 
-            // Success - keep the optimistic update
             isSubscribing = false
         } catch {
-            // Revert on failure
             feature.hasSubscribed = originalState
             isSubscribing = false
 
@@ -185,40 +223,13 @@ public final class FeatureDetailViewModel: ObservableObject {
         }
     }
 
-    /// Dismiss subscription message
-    public func dismissSubscriptionMessage() {
-        subscriptionMessage = nil
-        subscriptionError = nil
-    }
+    // MARK: - Comments
 
     /// Add a reaction to a comment
     public func addReaction(to comment: Comment, emoji: String) async {
         do {
             let user = userService.getUser()
             try await commentService.addReaction(commentId: comment.id, emoji: emoji, user: user)
-
-            // Optimistically update local state
-            if let index = comments.firstIndex(where: { $0.id == comment.id }) {
-                var updatedComment = comments[index]
-                var reactions = updatedComment.reactions
-                reactions[emoji, default: 0] += 1
-                var userReactions = updatedComment.userReactions
-                if !userReactions.contains(emoji) {
-                    userReactions.append(emoji)
-                }
-
-                comments[index] = Comment(
-                    id: updatedComment.id,
-                    userId: updatedComment.userId,
-                    featureId: updatedComment.featureId,
-                    comment: updatedComment.comment,
-                    createdAt: updatedComment.createdAt,
-                    reactions: reactions,
-                    userReactions: userReactions,
-                    isAdmin: updatedComment.isAdmin,
-                    fileUrl: updatedComment.fileUrl
-                )
-            }
         } catch let apiError as APIError {
             error = apiError
         } catch {
@@ -231,36 +242,48 @@ public final class FeatureDetailViewModel: ObservableObject {
         do {
             let user = userService.getUser()
             try await commentService.removeReaction(commentId: comment.id, emoji: emoji, user: user)
-
-            // Optimistically update local state
-            if let index = comments.firstIndex(where: { $0.id == comment.id }) {
-                var updatedComment = comments[index]
-                var reactions = updatedComment.reactions
-                if let count = reactions[emoji], count > 0 {
-                    reactions[emoji] = count - 1
-                    if reactions[emoji] == 0 {
-                        reactions.removeValue(forKey: emoji)
-                    }
-                }
-                var userReactions = updatedComment.userReactions
-                userReactions.removeAll { $0 == emoji }
-
-                comments[index] = Comment(
-                    id: updatedComment.id,
-                    userId: updatedComment.userId,
-                    featureId: updatedComment.featureId,
-                    comment: updatedComment.comment,
-                    createdAt: updatedComment.createdAt,
-                    reactions: reactions,
-                    userReactions: userReactions,
-                    isAdmin: updatedComment.isAdmin,
-                    fileUrl: updatedComment.fileUrl
-                )
-            }
         } catch let apiError as APIError {
             error = apiError
         } catch {
             self.error = .unknown(error.localizedDescription)
         }
+    }
+
+    // MARK: - Misc
+
+    /// Dismiss subscription message
+    public func dismissSubscriptionMessage() {
+        subscriptionMessage = nil
+        subscriptionError = nil
+    }
+
+    /// Clears the current permission error.
+    public func clearPermissionError() {
+        permissionError = nil
+        showPermissionAlert = false
+    }
+
+    // MARK: - Private Helpers
+
+    private func applyVote(isVoting: Bool) {
+        feature = Feature(
+            id: feature.id,
+            title: feature.title,
+            description: feature.description,
+            totalVotes: isVoting
+                ? feature.totalVotes + 1
+                : max(0, feature.totalVotes - 1),
+            status: feature.status,
+            createdAt: feature.createdAt,
+            updatedAt: feature.updatedAt,
+            commentCount: feature.commentCount,
+            hasVoted: isVoting,
+            hasSubscribed: feature.hasSubscribed,
+            userId: feature.userId,
+            releaseDate: feature.releaseDate,
+            tags: feature.tags,
+            fileUrl: feature.fileUrl,
+            releaseId: feature.releaseId
+        )
     }
 }

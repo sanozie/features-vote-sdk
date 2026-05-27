@@ -1,9 +1,10 @@
 import SwiftUI
 
-/// Feature header with title, vote button, and subscribe (matching list card layout)
+/// Feature header with title, vote button, and subscribe button
 public struct FeatureHeaderView: View {
     let feature: Feature
     let theme: Theme
+    let config: Configuration
     let onVote: () -> Void
     let onSubscribe: () -> Void
     let isSubscribing: Bool
@@ -12,6 +13,7 @@ public struct FeatureHeaderView: View {
     public init(
         feature: Feature,
         theme: Theme,
+        config: Configuration = .default,
         onVote: @escaping () -> Void,
         onSubscribe: @escaping () -> Void,
         isSubscribing: Bool = false,
@@ -19,47 +21,52 @@ public struct FeatureHeaderView: View {
     ) {
         self.feature = feature
         self.theme = theme
+        self.config = config
         self.onVote = onVote
         self.onSubscribe = onSubscribe
         self.isSubscribing = isSubscribing
-        // TODO: Remove this once the API is updated
-        // self.shouldShowSubscribeButton = shouldShowSubscribeButton
-        self.shouldShowSubscribeButton = true
+        self.shouldShowSubscribeButton = shouldShowSubscribeButton
     }
 
     public var body: some View {
         HStack(alignment: .top, spacing: 20) {
-            // Left side: Title, status, and subscribe button
+            // Left: Title, status badge, subscribe
             VStack(alignment: .leading, spacing: 12) {
-                // Title
                 Text(feature.title)
                     .font(.title2)
                     .fontWeight(.bold)
                     .foregroundColor(theme.textPrimaryColor)
                     .fixedSize(horizontal: false, vertical: true)
 
-                // Status badge below title (matching list card)
                 HStack(spacing: 12) {
                     StatusBadgeView(status: feature.status, theme: theme)
 
-                    // Subscribe button (matching JS widget's ghost variant)
                     if shouldShowSubscribeButton {
                         Button(action: onSubscribe) {
                             HStack(spacing: 6) {
                                 if isSubscribing {
                                     ProgressView()
                                         .frame(width: 14, height: 14)
+                                        .tint(theme.primaryColor)
                                 } else {
-                                    Image(systemName: feature.hasSubscribed ? "bell.fill" : "plus")
-                                        .font(.system(size: 14))
+                                    // Use configurable subscribe/subscribed icons
+                                    (feature.hasSubscribed
+                                        ? config.buttons.subscribedIcon
+                                        : config.buttons.subscribeIcon)
+                                        .font(.system(size: 13))
                                 }
                                 Text(feature.hasSubscribed ? "Subscribed" : "Subscribe")
                                     .font(.system(size: 14, weight: .medium))
                             }
-                            .foregroundColor(.secondary)
+                            .foregroundColor(
+                                feature.hasSubscribed
+                                    ? theme.primaryColor
+                                    : theme.primaryColor.opacity(0.75)
+                            )
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
-                            .background(Color.clear)
+                            .background(theme.primaryColor.opacity(0.08))
+                            .cornerRadius(8)
                         }
                         .disabled(isSubscribing)
                         .opacity(isSubscribing ? 0.6 : 1.0)
@@ -69,11 +76,12 @@ public struct FeatureHeaderView: View {
 
             Spacer()
 
-            // Right side: Vote button (matching list card)
+            // Right: Vote button (uses configurable upvote icon)
             VoteButtonView(
                 voteCount: feature.totalVotes,
                 hasVoted: feature.hasVoted,
                 theme: theme,
+                upvoteIcon: config.buttons.upvoteIcon,
                 onTap: onVote
             )
         }

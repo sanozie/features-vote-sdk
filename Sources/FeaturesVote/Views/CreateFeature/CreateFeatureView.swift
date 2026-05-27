@@ -16,6 +16,7 @@ public struct CreateFeatureView: View {
         theme: Theme = .default,
         config: Configuration = .default,
         localization: Localization = .default,
+        projectCustomization: Customization? = nil,
         onSuccess: (() -> Void)? = nil,
         userService: UserService? = nil
     ) {
@@ -23,7 +24,9 @@ public struct CreateFeatureView: View {
             slug: slug,
             availableTags: availableTags,
             featureService: FeatureService(),
-            userService: userService ?? UserService()
+            userService: userService ?? UserService(),
+            configuration: config,
+            projectCustomization: projectCustomization
         ))
         self.theme = theme
         self.config = config
@@ -34,15 +37,52 @@ public struct CreateFeatureView: View {
     public var body: some View {
         NavigationStack {
             Form {
+                // MARK: Title & Description
                 Section {
                     TextField(localization.titlePlaceholder, text: $viewModel.title)
+                        #if os(iOS)
                         .textInputAutocapitalization(.sentences)
+                        #endif
 
                     TextField(localization.descriptionPlaceholder, text: $viewModel.description, axis: .vertical)
                         .lineLimit(5...10)
+                        #if os(iOS)
                         .textInputAutocapitalization(.sentences)
+                        #endif
                 }
 
+                // MARK: Image Attachment
+                Section {
+                    if let imageData = viewModel.selectedImage {
+                        // Show preview with remove button
+                        ImagePreview(imageData: imageData) {
+                            viewModel.selectedImage = nil
+                        }
+                    } else {
+                        // Show picker button
+                        HStack {
+                            #if canImport(UIKit)
+                            if #available(iOS 16.0, *) {
+                                ImagePicker(selectedImageData: $viewModel.selectedImage, theme: theme)
+                            } else {
+                                ImagePickerButton(selectedImageData: $viewModel.selectedImage, theme: theme)
+                            }
+                            #elseif canImport(AppKit)
+                            ImagePicker(selectedImageData: $viewModel.selectedImage, theme: theme)
+                            #endif
+
+                            Spacer()
+
+                            Text("Optional")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                } header: {
+                    Text("Attachment")
+                }
+
+                // MARK: Tags
                 if !viewModel.availableTags.isEmpty {
                     Section {
                         TagSelectorView(
@@ -53,6 +93,20 @@ public struct CreateFeatureView: View {
                     }
                 }
 
+                // MARK: Email required warning
+                if viewModel.emailRequired {
+                    Section {
+                        HStack(spacing: 8) {
+                            Image(systemName: "exclamationmark.circle")
+                                .foregroundColor(theme.errorColor)
+                            Text("An email address is required to submit a feature request.")
+                                .font(.caption)
+                                .foregroundColor(theme.errorColor)
+                        }
+                    }
+                }
+
+                // MARK: Error
                 if let error = viewModel.error {
                     Section {
                         Text(error.localizedDescription)
@@ -61,8 +115,12 @@ public struct CreateFeatureView: View {
                     }
                 }
             }
-            .navigationTitle(localization.createFeatureTitle)
+            .navigationTitle(viewModel.customHeaderText ?? localization.createFeatureTitle)
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
+            // Apply primary color to Cancel/Submit buttons and any other tinted controls
+            .tint(theme.primaryColor)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(localization.cancel) {
@@ -90,6 +148,7 @@ public struct CreateFeatureView: View {
                         .ignoresSafeArea()
                     ProgressView()
                         .scaleEffect(1.5)
+                        .tint(theme.primaryColor)
                 }
             }
         }

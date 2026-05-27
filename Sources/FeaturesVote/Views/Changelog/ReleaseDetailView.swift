@@ -123,7 +123,9 @@ public struct ReleaseDetailView: View {
                 Color.clear.frame(height: 20)
             }
         }
+        #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
+        #endif
         .background(
             (colorScheme == .dark ? Color.black : Color(hex: "#F9FAFB"))
                 .ignoresSafeArea()

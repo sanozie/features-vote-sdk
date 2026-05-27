@@ -5,6 +5,7 @@ public struct VoteButtonView: View {
     let voteCount: Int
     let hasVoted: Bool
     let theme: Theme
+    let upvoteIcon: Image
     let onTap: () -> Void
     @State private var isPressed = false
 
@@ -12,11 +13,13 @@ public struct VoteButtonView: View {
         voteCount: Int,
         hasVoted: Bool,
         theme: Theme = .default,
+        upvoteIcon: Image = Image(systemName: "chevron.up"),
         onTap: @escaping () -> Void
     ) {
         self.voteCount = voteCount
         self.hasVoted = hasVoted
         self.theme = theme
+        self.upvoteIcon = upvoteIcon
         self.onTap = onTap
     }
 
@@ -27,9 +30,9 @@ public struct VoteButtonView: View {
             }
         }) {
             VStack(spacing: 6) {
-                Image(systemName: "chevron.up")
+                upvoteIcon
                     .font(.system(size: 16, weight: .bold))
-                
+
                 Text("\(voteCount)")
                     .font(.system(size: 13, weight: .bold))
             }
@@ -37,7 +40,7 @@ public struct VoteButtonView: View {
             .background(
                 RoundedRectangle(cornerRadius: 14)
                     .fill(
-                        hasVoted 
+                        hasVoted
                             ? LinearGradient(
                                 colors: [theme.primaryColor, theme.primaryColor.opacity(0.85)],
                                 startPoint: .top,
@@ -53,7 +56,7 @@ public struct VoteButtonView: View {
             .overlay(
                 RoundedRectangle(cornerRadius: 14)
                     .stroke(
-                        hasVoted 
+                        hasVoted
                             ? theme.primaryColor.opacity(0.3)
                             : Color.gray.opacity(0.25),
                         lineWidth: hasVoted ? 0 : 1.5
@@ -61,7 +64,7 @@ public struct VoteButtonView: View {
             )
             .foregroundColor(hasVoted ? .white : theme.textPrimaryColor.opacity(0.8))
             .shadow(
-                color: hasVoted 
+                color: hasVoted
                     ? theme.primaryColor.opacity(0.3)
                     : Color.clear,
                 radius: 8,

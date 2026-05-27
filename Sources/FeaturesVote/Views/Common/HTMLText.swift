@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// View that renders HTML text
+/// View that renders HTML text using the system font (San Francisco)
 public struct HTMLText: View {
     let html: String
     let font: Font
@@ -17,29 +17,50 @@ public struct HTMLText: View {
     }
 
     public var body: some View {
-        if let attributedString = attributedString {
-            Text(attributedString)
-                .font(font)
-                // Don't override color - let the AttributedString handle it
-        } else {
-            // Fallback to plain text if HTML parsing fails
-            Text(html)
-                .font(font)
-                .foregroundColor(Color(hex: "#6B7280"))
-                .task {
-                    await parseHTML()
-                }
+        Group {
+            if let attributedString = attributedString {
+                Text(attributedString)
+            } else {
+                // Placeholder while async parse is in flight
+                Text(html)
+                    .font(font)
+                    .foregroundColor(.secondary)
+            }
+        }
+        // Re-run whenever html content changes (handles view reuse)
+        .task(id: html) {
+            await parseHTML()
         }
     }
 
     private func parseHTML() async {
-        // Convert HTML to AttributedString
-        guard let data = html.data(using: .utf8) else {
-            return
+        // Inject CSS so WebKit uses the system font (-apple-system = San Francisco on Apple platforms)
+        // instead of the default Times New Roman it falls back to when no font is specified.
+        let styledHtml = """
+        <html><head><meta charset="utf-8"><style>
+        body {
+            font-family: -apple-system, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+            font-size: \(Int(fontSize))px;
+            color: #374151;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
         }
+        p  { margin: 0 0 0.5em 0; }
+        p:last-child { margin-bottom: 0; }
+        strong, b { font-weight: 600; }
+        em, i     { font-style: italic; }
+        a         { color: #7C3AED; text-decoration: underline; }
+        code      { font-family: 'Menlo', 'Courier New', monospace; font-size: 0.88em; }
+        ul, ol    { margin: 0 0 0.5em 0; padding-left: 1.5em; }
+        li        { margin-bottom: 0.2em; }
+        blockquote { margin: 0 0 0.5em 1em; color: #6B7280; border-left: 3px solid #D1D5DB; padding-left: 0.75em; }
+        </style></head><body>\(html)</body></html>
+        """
+
+        guard let data = styledHtml.data(using: .utf8) else { return }
 
         do {
-            // Try to parse as HTML
             let options: [NSAttributedString.DocumentReadingOptionKey: Any] = [
                 .documentType: NSAttributedString.DocumentType.html,
                 .characterEncoding: String.Encoding.utf8.rawValue
@@ -51,21 +72,26 @@ public struct HTMLText: View {
                 documentAttributes: nil
             )
 
-            // Convert to SwiftUI AttributedString
-            var swiftAttributedString = AttributedString(nsAttributedString)
+            // Trim trailing newline that WebKit always appends
+            let trimmed = nsAttributedString.string.hasSuffix("\n")
+                ? nsAttributedString.attributedSubstring(
+                    from: NSRange(location: 0, length: max(0, nsAttributedString.length - 1))
+                  )
+                : nsAttributedString
 
-            // Set foreground color to be slightly lighter (gray)
-            swiftAttributedString.foregroundColor = Color(hex: "#6B7280")
-
-            attributedString = swiftAttributedString
+            attributedString = AttributedString(trimmed)
         } catch {
-            // If HTML parsing fails, try markdown as fallback
-            attributedString = try? AttributedString(
+            // Fallback: try markdown, then plain text
+            if let md = try? AttributedString(
                 markdown: html,
                 options: AttributedString.MarkdownParsingOptions(
                     interpretedSyntax: .inlineOnlyPreservingWhitespace
                 )
-            )
+            ) {
+                attributedString = md
+            } else {
+                attributedString = AttributedString(html)
+            }
         }
     }
 }
