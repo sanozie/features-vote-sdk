@@ -177,6 +177,27 @@ public struct FeaturesVote {
         }
     }
 
+    /// Roadmap view (SwiftUI)
+    public struct RoadmapView: View {
+        public init() {}
+
+        public var body: some View {
+            let instance = FeaturesVote.shared
+            return InternalRoadmapView(
+                viewModel: RoadmapViewModel(
+                    slug: instance.slug,
+                    featureService: instance.featureService,
+                    voteService: instance.voteService,
+                    userService: instance.userService,
+                    configuration: instance.config
+                ),
+                theme: instance.theme,
+                config: instance.config,
+                localization: instance.localization
+            )
+        }
+    }
+
     #if canImport(UIKit)
     // MARK: - UIKit Bridges
 
@@ -201,6 +222,12 @@ public struct FeaturesVote {
     /// Get a UIViewController for the changelog
     public static var changelogViewController: UIViewController {
         let view = ChangelogView()
+        return UIHostingController(rootView: view)
+    }
+
+    /// Get a UIViewController for the roadmap
+    public static var roadmapViewController: UIViewController {
+        let view = RoadmapView()
         return UIHostingController(rootView: view)
     }
     #endif
@@ -245,3 +272,4 @@ internal typealias InternalVotingBoardView = VotingBoardView
 internal typealias InternalFeatureDetailView = FeatureDetailView
 internal typealias InternalCreateFeatureView = CreateFeatureView
 internal typealias InternalChangelogView = ChangelogView
+internal typealias InternalRoadmapView = RoadmapView
