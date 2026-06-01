@@ -102,6 +102,9 @@ public struct RoadmapView: View {
                                 }
                             }
                         }
+                    } else {
+                        ProgressView()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
                 }
         }
