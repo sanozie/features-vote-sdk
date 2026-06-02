@@ -79,32 +79,27 @@ public struct RoadmapView: View {
                     }
                 }
                 .sheet(item: $selectedFeature) { feature in
-                    if let project = viewModel.project {
-                        NavigationStack {
-                            InternalFeatureDetailView(
-                                feature: feature,
-                                slug: project.slug,
-                                theme: theme,
-                                config: config,
-                                localization: localization,
-                                projectLogoUrl: project.logoUrl,
-                                projectCustomization: project.customization,
-                                userService: viewModel.userService,
-                                onFeatureUpdated: { updatedFeature in
-                                    viewModel.updateFeature(updatedFeature)
-                                }
-                            )
-                            .toolbar {
-                                ToolbarItem(placement: .cancellationAction) {
-                                    Button("Done") {
-                                        selectedFeature = nil
-                                    }
+                    NavigationStack {
+                        InternalFeatureDetailView(
+                            feature: feature,
+                            slug: viewModel.slug,
+                            theme: theme,
+                            config: config,
+                            localization: localization,
+                            projectLogoUrl: viewModel.project?.logoUrl,
+                            projectCustomization: viewModel.project?.customization,
+                            userService: viewModel.userService,
+                            onFeatureUpdated: { updatedFeature in
+                                viewModel.updateFeature(updatedFeature)
+                            }
+                        )
+                        .toolbar {
+                            ToolbarItem(placement: .cancellationAction) {
+                                Button("Done") {
+                                    selectedFeature = nil
                                 }
                             }
                         }
-                    } else {
-                        ProgressView()
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
                 }
         }

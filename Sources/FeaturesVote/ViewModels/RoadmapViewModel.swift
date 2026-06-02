@@ -19,7 +19,7 @@ public final class RoadmapViewModel: ObservableObject {
 
     // MARK: - Dependencies
 
-    private let slug: String
+    public let slug: String
     private let featureService: FeatureServiceProtocol
     private let voteService: VoteServiceProtocol
     internal let userService: UserService

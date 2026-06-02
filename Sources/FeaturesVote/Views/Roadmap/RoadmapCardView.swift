@@ -25,10 +25,6 @@ public struct RoadmapCardView: View {
         self.onTap = onTap
     }
 
-    private var statusColor: Color {
-        theme.color(for: feature.status)
-    }
-
     // Strip HTML tags so the compact card shows clean plain text
     private var plainDescription: String {
         feature.description
@@ -37,76 +33,69 @@ public struct RoadmapCardView: View {
     }
 
     public var body: some View {
-        HStack(spacing: 0) {
-            // Left status accent stripe — clipped to card's rounded corners by clipShape below
-            Rectangle()
-                .fill(statusColor)
-                .frame(width: 4)
+        VStack(alignment: .leading, spacing: 10) {
+            // Title
+            Text(feature.title)
+                .font(.system(size: 14, weight: .semibold, design: .default))
+                .foregroundColor(theme.textPrimaryColor)
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-            VStack(alignment: .leading, spacing: 10) {
-                // Title
-                Text(feature.title)
-                    .font(.system(size: 14, weight: .semibold, design: .default))
-                    .foregroundColor(theme.textPrimaryColor)
+            // Description (HTML stripped for compact display)
+            if !plainDescription.isEmpty {
+                Text(plainDescription)
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundColor(theme.textSecondaryColor)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
                     .frame(maxWidth: .infinity, alignment: .leading)
-
-                // Description (HTML stripped for compact display)
-                if !plainDescription.isEmpty {
-                    Text(plainDescription)
-                        .font(.system(size: 12, weight: .regular))
-                        .foregroundColor(theme.textSecondaryColor)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.leading)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-
-                // Tags
-                if config.ui.showTags, let tags = feature.tags, !tags.isEmpty {
-                    TagsView(tags: tags, availableTags: availableTags)
-                }
-
-                // Footer: compact vote pill + comment count
-                HStack(alignment: .center) {
-                    // Vote button — standalone Button so it doesn't conflict with card tap
-                    Button(action: onVote) {
-                        HStack(spacing: 4) {
-                            Image(systemName: feature.hasVoted ? "chevron.up.circle.fill" : "chevron.up.circle")
-                                .font(.system(size: 13, weight: .semibold))
-                            Text("\(feature.totalVotes)")
-                                .font(.system(size: 12, weight: .bold))
-                                .monospacedDigit()
-                        }
-                        .foregroundColor(feature.hasVoted ? theme.primaryColor : .secondary)
-                        .padding(.vertical, 5)
-                        .padding(.horizontal, 9)
-                        .background(
-                            Capsule()
-                                .fill(feature.hasVoted
-                                    ? theme.primaryColor.opacity(0.12)
-                                    : Color.gray.opacity(0.08))
-                        )
-                    }
-                    .buttonStyle(.plain)
-
-                    Spacer()
-
-                    if config.ui.showCommentCount && feature.commentCount > 0 {
-                        HStack(spacing: 3) {
-                            Image(systemName: "bubble.left")
-                                .font(.system(size: 11))
-                            Text("\(feature.commentCount)")
-                                .font(.system(size: 11, weight: .medium))
-                        }
-                        .foregroundColor(.secondary)
-                    }
-                }
-                .padding(.top, 2)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 12)
+
+            // Tags
+            if config.ui.showTags, let tags = feature.tags, !tags.isEmpty {
+                TagsView(tags: tags, availableTags: availableTags)
+            }
+
+            // Footer: compact vote pill + comment count
+            HStack(alignment: .center) {
+                // Vote button — standalone Button so it doesn't conflict with card tap
+                Button(action: onVote) {
+                    HStack(spacing: 4) {
+                        Image(systemName: feature.hasVoted ? "chevron.up.circle.fill" : "chevron.up.circle")
+                            .font(.system(size: 13, weight: .semibold))
+                        Text("\(feature.totalVotes)")
+                            .font(.system(size: 12, weight: .bold))
+                            .monospacedDigit()
+                    }
+                    .foregroundColor(feature.hasVoted ? theme.primaryColor : .secondary)
+                    .padding(.vertical, 5)
+                    .padding(.horizontal, 9)
+                    .background(
+                        Capsule()
+                            .fill(feature.hasVoted
+                                ? theme.primaryColor.opacity(0.12)
+                                : Color.gray.opacity(0.08))
+                    )
+                }
+                .buttonStyle(.plain)
+
+                Spacer()
+
+                if config.ui.showCommentCount && feature.commentCount > 0 {
+                    HStack(spacing: 3) {
+                        Image(systemName: "bubble.left")
+                            .font(.system(size: 11))
+                        Text("\(feature.commentCount)")
+                            .font(.system(size: 11, weight: .medium))
+                    }
+                    .foregroundColor(.secondary)
+                }
+            }
+            .padding(.top, 2)
         }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(theme.surfaceColor)
         .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadius))
