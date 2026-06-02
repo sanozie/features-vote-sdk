@@ -6,14 +6,24 @@ public struct HTMLText: View {
     let font: Font
     let fontSize: CGFloat
     let color: Color
+    let linkColor: Color
 
     @State private var attributedString: AttributedString?
 
-    public init(_ html: String, font: Font = .body, fontSize: CGFloat = 15, color: Color = .primary) {
+    public init(
+        _ html: String,
+        font: Font = .body,
+        fontSize: CGFloat = 15,
+        color: Color = .primary,
+        // Defaults to the configured theme's primary color so embedded links
+        // match the host app's branding instead of the SDK's default purple.
+        linkColor: Color = FeaturesVote.theme.primaryColor
+    ) {
         self.html = html
         self.font = font
         self.fontSize = fontSize
         self.color = color
+        self.linkColor = linkColor
     }
 
     public var body: some View {
@@ -36,6 +46,7 @@ public struct HTMLText: View {
     private func parseHTML() async {
         // Inject CSS so WebKit uses the system font (-apple-system = San Francisco on Apple platforms)
         // instead of the default Times New Roman it falls back to when no font is specified.
+        let linkHex = linkColor.hexString ?? "#7C3AED"
         let styledHtml = """
         <html><head><meta charset="utf-8"><style>
         body {
@@ -50,7 +61,7 @@ public struct HTMLText: View {
         p:last-child { margin-bottom: 0; }
         strong, b { font-weight: 600; }
         em, i     { font-style: italic; }
-        a         { color: #7C3AED; text-decoration: underline; }
+        a         { color: \(linkHex); text-decoration: underline; }
         code      { font-family: 'Menlo', 'Courier New', monospace; font-size: 0.88em; }
         ul, ol    { margin: 0 0 0.5em 0; padding-left: 1.5em; }
         li        { margin-bottom: 0.2em; }
