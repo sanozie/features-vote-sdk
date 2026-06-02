@@ -46,7 +46,12 @@ public struct TagSelectorView: View {
                     RoundedRectangle(cornerRadius: 8)
                         .stroke(isSelected ? Color(hex: tag.theme) : Color.clear, lineWidth: 2)
                 )
+                .contentShape(Rectangle())
         }
+        // Inside a Form/List cell, multiple default-styled buttons share one tap
+        // target and all fire together — tapping one tag selected every tag.
+        // An explicit button style isolates each tag's hit area.
+        .buttonStyle(.borderless)
     }
 }
 

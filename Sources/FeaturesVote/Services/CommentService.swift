@@ -85,16 +85,19 @@ public final class CommentService: CommentServiceProtocol {
         let _: String = try await apiClient.requestString(.addReaction, body: request)
     }
 
-    /// Remove an emoji reaction from a comment
+    /// Remove an emoji reaction from a comment.
+    /// Mirrors the widget's remove-reaction payload, which sends only the
+    /// identifying fields (email, app_user_id, token) — nil optionals are omitted
+    /// from the encoded JSON.
     public func removeReaction(commentId: String, emoji: String, user: User? = nil) async throws {
         let request = CommentReactionRequest(
             commentId: commentId,
             emoji: emoji,
-            name: user?.name,
+            name: nil,
             email: user?.email,
             appUserId: user?.appUserId,
-            imgUrl: user?.imgUrl,
-            userSpend: user?.userSpend,
+            imgUrl: nil,
+            userSpend: nil,
             token: user?.token
         )
 

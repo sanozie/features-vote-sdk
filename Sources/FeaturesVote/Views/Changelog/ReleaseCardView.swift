@@ -111,37 +111,23 @@ public struct ReleaseCardView: View {
     }
 }
 
-/// Beautiful glassmorphism READ MORE button
+/// Minimal, right-aligned "Read more" affordance
 struct GlassmorphismReadMoreButton: View {
     let theme: Theme
-    @Environment(\.colorScheme) var colorScheme
 
     var body: some View {
-        HStack {
+        HStack(spacing: 3) {
             Spacer()
 
-            HStack(spacing: 8) {
-                Text("READ MORE")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(theme.primaryColor)
+            Text("Read more")
+                .font(.system(size: 12, weight: .medium))
 
-                Image(systemName: "arrow.right")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(theme.primaryColor)
-            }
-
-            Spacer()
+            Image(systemName: "chevron.right")
+                .font(.system(size: 9, weight: .semibold))
         }
-        .padding(.vertical, 16)
-        .background(
-            // White background for smoother transition (adapts to dark mode)
-            colorScheme == .dark ? Color.black : Color.white
-        )
-        #if canImport(UIKit)
-        .cornerRadius(12, corners: [.bottomLeft, .bottomRight])
-        #else
-        .cornerRadius(12)
-        #endif
+        .foregroundColor(theme.primaryColor.opacity(0.85))
+        .padding(.horizontal, 20)
+        .padding(.bottom, 16)
     }
 }
 

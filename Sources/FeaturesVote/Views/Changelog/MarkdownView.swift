@@ -292,6 +292,15 @@ public struct MarkdownView: View {
                 // Resolve relative links to full URLs
                 parsed = Self.resolveLinks(in: parsed)
 
+                // SwiftUI's markdown parser doesn't theme links, so highlight any
+                // link runs with the theme's primary color + underline. Collect the
+                // ranges first to avoid mutating while iterating runs.
+                let linkRanges = parsed.runs.compactMap { $0.link != nil ? $0.range : nil }
+                for range in linkRanges {
+                    parsed[range].foregroundColor = theme.primaryColor
+                    parsed[range].underlineStyle = .single
+                }
+
                 segments.append(.text(parsed))
                 
                 // Add spacing between paragraphs (except for last one)

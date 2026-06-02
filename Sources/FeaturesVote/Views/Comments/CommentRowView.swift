@@ -7,6 +7,12 @@ public struct CommentRowView: View {
     let projectLogoUrl: String?
     let onReactionTap: (String) -> Void
 
+    /// Quick-reaction emoji set offered by the add-reaction picker.
+    private static let quickReactions = [
+        "👍", "👎", "❤️", "🎉", "🔥", "🙌", "👏", "💯",
+        "😄", "😍", "🤔", "😮", "😢", "😡", "🚀", "👀"
+    ]
+
     private static let storageBaseURL = "https://gsvxtxhayvayudcjyhbw.supabase.co/storage/v1/object/public/images"
 
     /// Resolves a file URL - if it's already a full URL, use it as-is; otherwise prepend the storage base URL
@@ -79,33 +85,59 @@ public struct CommentRowView: View {
                 )
             }
 
-            // Reactions
-            if !comment.reactions.isEmpty {
-                HStack(spacing: 8) {
-                    ForEach(Array(comment.reactions.keys.sorted()), id: \.self) { emoji in
-                        Button {
-                            onReactionTap(emoji)
-                        } label: {
-                            HStack(spacing: 4) {
-                                Text(emoji)
-                                    .font(.caption)
-                                Text("\(comment.reactions[emoji] ?? 0)")
-                                    .font(.caption2)
-                                    .foregroundColor(.secondary)
-                            }
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(comment.userReactions.contains(emoji) ? theme.primaryColor.opacity(0.2) : Color.secondary.opacity(0.1))
-                            )
+            // Reactions — existing reaction pills plus an add-reaction picker
+            HStack(spacing: 8) {
+                ForEach(Array(comment.reactions.keys.sorted()), id: \.self) { emoji in
+                    Button {
+                        onReactionTap(emoji)
+                    } label: {
+                        HStack(spacing: 4) {
+                            Text(emoji)
+                                .font(.caption)
+                            Text("\(comment.reactions[emoji] ?? 0)")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
                         }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(comment.userReactions.contains(emoji) ? theme.primaryColor.opacity(0.2) : Color.secondary.opacity(0.1))
+                        )
                     }
+                    .buttonStyle(.plain)
                 }
+
+                addReactionMenu
             }
         }
         .padding()
         .background(theme.surfaceColor)
         .cornerRadius(theme.cornerRadius)
+    }
+
+    /// "+" picker that lets the user add a new emoji reaction. The onReactionTap
+    /// handler toggles, so selecting an emoji the user already reacted with removes it.
+    private var addReactionMenu: some View {
+        Menu {
+            ForEach(Self.quickReactions, id: \.self) { emoji in
+                Button {
+                    onReactionTap(emoji)
+                } label: {
+                    Text("\(emoji)")
+                }
+            }
+        } label: {
+            Image(systemName: "face.smiling")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(.secondary)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.secondary.opacity(0.1))
+                )
+        }
+        .buttonStyle(.plain)
     }
 }
