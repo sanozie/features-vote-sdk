@@ -41,10 +41,10 @@ In Xcode → **File → Add Package Dependencies**, paste:
 https://github.com/features-vote/features-vote-sdk.git
 ```
 
-In the dependency rule, choose **Branch → `main`**. Or add it to your `Package.swift`:
+Or add it to your `Package.swift`:
 
 ```swift
-.package(url: "https://github.com/features-vote/features-vote-sdk.git", branch: "main")
+.package(url: "https://github.com/features-vote/features-vote-sdk.git", from: "1.1.0")
 ```
 
 ## 2. Configure Features.Vote with your project slug.
