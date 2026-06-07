@@ -90,9 +90,6 @@ extension Configuration {
         /// Enable optimistic UI updates (update immediately, revert on error)
         public var enableOptimisticUpdates: Bool
 
-        /// Cache timeout in seconds
-        public var cacheTimeout: TimeInterval
-
         /// Show confirmation dialog before voting
         public var confirmVoting: Bool
 
@@ -104,7 +101,6 @@ extension Configuration {
             allowAnonymousComments: Bool = true,
             requireEmailForCreate: Bool = false,
             enableOptimisticUpdates: Bool = true,
-            cacheTimeout: TimeInterval = 300,
             confirmVoting: Bool = false,
             confirmUnsubscribe: Bool = true
         ) {
@@ -112,7 +108,6 @@ extension Configuration {
             self.allowAnonymousComments = allowAnonymousComments
             self.requireEmailForCreate = requireEmailForCreate
             self.enableOptimisticUpdates = enableOptimisticUpdates
-            self.cacheTimeout = cacheTimeout
             self.confirmVoting = confirmVoting
             self.confirmUnsubscribe = confirmUnsubscribe
         }
@@ -129,40 +124,20 @@ extension Configuration {
         /// Icon for upvote button
         public var upvoteIcon: Image
 
-        /// Icon for downvote button (currently unused)
-        public var downvoteIcon: Image
-
-        /// Icon for comment button
-        public var commentIcon: Image
-
-        /// Icon for share button
-        public var shareIcon: Image
-
         /// Icon for subscribe button (not subscribed)
         public var subscribeIcon: Image
 
         /// Icon for subscribed state
         public var subscribedIcon: Image
 
-        /// Icon for create button
-        public var createIcon: Image
-
         public init(
             upvoteIcon: Image = Image(systemName: "arrow.up"),
-            downvoteIcon: Image = Image(systemName: "arrow.down"),
-            commentIcon: Image = Image(systemName: "bubble.left"),
-            shareIcon: Image = Image(systemName: "square.and.arrow.up"),
             subscribeIcon: Image = Image(systemName: "bell"),
-            subscribedIcon: Image = Image(systemName: "bell.fill"),
-            createIcon: Image = Image(systemName: "plus")
+            subscribedIcon: Image = Image(systemName: "bell.fill")
         ) {
             self.upvoteIcon = upvoteIcon
-            self.downvoteIcon = downvoteIcon
-            self.commentIcon = commentIcon
-            self.shareIcon = shareIcon
             self.subscribeIcon = subscribeIcon
             self.subscribedIcon = subscribedIcon
-            self.createIcon = createIcon
         }
 
         public static let `default` = Buttons()

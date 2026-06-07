@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-`features-vote-sdk` is the native **Swift SDK** for embedding Features.Vote widgets into iOS (16.0+) and macOS (12.0+) applications. It provides drop-in SwiftUI components — voting board, feature detail, changelog, roadmap, and create-feature form — with full customization support. Zero external dependencies; uses only Apple native frameworks.
+`features-vote-sdk` is the native **Swift SDK** for embedding Features.Vote widgets into iOS (16.0+) and macOS (13.0+) applications. It provides drop-in SwiftUI components — voting board, feature detail, changelog, roadmap, and create-feature form — with full customization support. Zero external dependencies; uses only Apple native frameworks.
 
 This codebase is a **pure API consumer** of the main `features-vote` app's `/api/public/*` endpoints. It does not require an API key — it uses the project slug for identification and optional user tokens for authenticated actions.
 
@@ -18,7 +18,7 @@ swift test                           # Run tests
 swift build -c release               # Release build
 ```
 
-**Minimum platforms:** iOS 16.0, macOS 12.0
+**Minimum platforms:** iOS 16.0, macOS 13.0 (per `Package.swift`)
 **Swift version:** 5.9+
 **Xcode:** 15.0+
 
@@ -26,7 +26,7 @@ swift build -c release               # Release build
 
 In Xcode → File → Add Package Dependencies, or in `Package.swift`:
 ```swift
-.package(url: "https://github.com/features-vote/features-vote-sdk.git", from: "1.0.0")
+.package(url: "https://github.com/features-vote/features-vote-sdk.git", from: "2.0.0")
 ```
 
 ## Architecture
@@ -39,6 +39,7 @@ Sources/FeaturesVote/
 ├── Networking/
 │   ├── APIClient.swift             # Generic HTTP client (GET/POST/multipart)
 │   ├── APIEndpoint.swift           # All endpoint URL definitions ← KEY FILE
+│   ├── APIError.swift              # Typed API error enum
 │   └── MultipartFormData.swift     # File upload support
 ├── Services/                       # One service per domain
 │   ├── FeatureService.swift
@@ -50,26 +51,36 @@ Sources/FeaturesVote/
 │   └── FeatureUserService.swift
 ├── Models/                         # Codable data models
 │   ├── Feature.swift
-│   ├── Comment.swift
+│   ├── Comment.swift               # Comment + CreateCommentRequest + CommentReactionRequest
 │   ├── Release.swift
-│   ├── Project.swift
+│   ├── Project.swift               # Project + Customization
 │   ├── Tag.swift
 │   ├── User.swift
+│   ├── FeatureUser.swift           # Display info (name, avatar) for authors/commenters
 │   └── FeatureStatus.swift         # Enum: pending, approved, inProgress, done, rejected
-├── Views/                          # SwiftUI components (9+ subdirectories)
-│   ├── VotingBoard/
-│   ├── FeatureDetail/
-│   ├── CreateFeature/
-│   ├── Changelog/
-│   ├── Roadmap/
-│   └── Common/                     # Shared components (avatars, spinners, markdown, etc.)
+├── ViewModels/                     # MVVM view models (one per main view)
+│   ├── VotingBoardViewModel.swift
+│   ├── FeatureDetailViewModel.swift
+│   ├── CreateFeatureViewModel.swift
+│   ├── ChangelogViewModel.swift
+│   ├── RoadmapViewModel.swift
+│   └── CommentsViewModel.swift
+├── Views/                          # SwiftUI components (7 subdirectories)
+│   ├── VotingBoard/                # VotingBoardView, FeatureRowView, FilterTabsView, TagsView, VoteButtonView
+│   ├── FeatureDetail/              # FeatureDetailView, FeatureHeaderView
+│   ├── CreateFeature/              # CreateFeatureView, TagSelectorView
+│   ├── Changelog/                  # ChangelogView, ReleaseCardView, ReleaseDetailView, MarkdownView
+│   ├── Roadmap/                    # RoadmapView, RoadmapColumnView, RoadmapCardView
+│   ├── Comments/                   # CommentsListView, CommentRowView, CommentInputView
+│   └── Common/                     # Shared components (avatars, spinners, markdown, HTML, image viewer, etc.)
+├── Utilities/                      # Extensions.swift, Logger.swift (FVLog), UUIDManager.swift
 └── Configuration/
     ├── Theme.swift                  # Colors, fonts, corner radius
-    ├── Configuration.swift          # UI and behavior toggles
+    ├── Configuration.swift          # UI, behavior, and button toggles
     └── Localization.swift           # All user-facing strings
 ```
 
-**Test app:** `TestApp/FeaturesVoteTestApp/` — full working example app for manual verification.
+**Test app:** `TestApp/FeaturesVoteTestApp/` — full working example app for manual verification. Tabs: **Board** (SwiftUI `VotingBoardView`), **Roadmap** (`RoadmapView`), **Changelog** (`ChangelogView`), **Settings** (every `Theme`/`Configuration` option live + a SwiftUI `CreateFeatureView` sheet), and **UIKit** (all view-controller bridges). `FeatureDetailView` is reached by tapping a card on Board/Roadmap.
 
 ## Public API (SDK Entry Point)
 
@@ -94,20 +105,22 @@ FeaturesVote.config = Configuration(allowAnonymousVoting: false, ...)
 FeaturesVote.localization = Localization(boardTitle: "Feature Requests", ...)
 ```
 
-**SwiftUI views:**
+**SwiftUI views** (all nested under the `FeaturesVote` namespace):
 ```swift
-VotingBoardView()
-FeatureDetailView(featureId: "abc-123")
-CreateFeatureView()
-ChangelogView()
-RoadmapView()
+FeaturesVote.VotingBoardView()
+FeaturesVote.FeatureDetailView(feature: feature)        // takes a Feature value, not an id
+FeaturesVote.CreateFeatureView(onSuccess: { ... })      // onSuccess is optional
+FeaturesVote.ChangelogView()
+FeaturesVote.RoadmapView()
 ```
 
-**UIKit bridges:**
+**UIKit bridges** (iOS only, `#if canImport(UIKit)`):
 ```swift
-FeaturesVote.votingBoardViewController
-FeaturesVote.featureDetailViewController(for: featureId)
-FeaturesVote.createFeatureViewController
+FeaturesVote.votingBoardViewController                  // computed property
+FeaturesVote.roadmapViewController                      // computed property
+FeaturesVote.changelogViewController                    // computed property
+FeaturesVote.featureDetailViewController(for: feature)  // func, takes a Feature
+FeaturesVote.createFeatureViewController(onSuccess:)     // func, onSuccess optional
 ```
 
 ## API Endpoints Called
@@ -149,15 +162,14 @@ The same public API changes also affect `features-vote-widget` (`src/services/bo
 
 ## Customization Reference
 
-**Theme** — colors, fonts, corner radius. Applied globally.
+**Theme** — colors, fonts, corner radius. Applied globally. Includes brand colors (`primaryColor`, `secondaryColor`, `backgroundColor`, `surfaceColor`), text colors, feedback colors (`errorColor`, `successColor`), per-status colors (`pendingColor`, `approvedColor`, `inProgressColor`, `doneColor`, `rejectedColor`), typography (`titleFont`, `bodyFont`, `captionFont`), and `cornerRadius`. `Theme.from(project:colorScheme:)` builds a theme from a project's branding.
 
-**Configuration** — behavior toggles:
-- `showStatusBadge`, `showCommentCount`, `showTags`, `showWatermark`, `showAvatars`
-- `allowAnonymousVoting`, `allowAnonymousComments`
-- `requireEmailForCreate`, `enableOptimisticUpdates`
-- `maxDescriptionLines`, `enablePullToRefresh`, `cacheTimeout`
+**Configuration** — three nested structs, all enforced by the views/view models (see `docs/features/configuration-enforcement.md`):
+- `Configuration.UI`: `showStatusBadge`, `showCommentCount`, `showTags`, `showWatermark`, `enablePullToRefresh`, `showAvatars` (Bool); `maxDescriptionLines` (Int)
+- `Configuration.Behavior`: `allowAnonymousVoting`, `allowAnonymousComments`, `requireEmailForCreate`, `enableOptimisticUpdates`, `confirmVoting`, `confirmUnsubscribe` (Bool)
+- `Configuration.Buttons`: customizable SF Symbol `Image`s — `upvoteIcon`, `subscribeIcon`, `subscribedIcon`
 
-**Localization** — all user-visible strings (board title, tab names, button labels, placeholder text, etc.)
+**Localization** — all user-visible strings (board title, tab names, button labels, placeholder text, status labels, error/validation messages, etc.)
 
 ## User Identification & Auth
 

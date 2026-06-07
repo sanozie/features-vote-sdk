@@ -36,7 +36,7 @@ Add the following to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/your-org/features-vote-sdk", from: "1.0.0")
+    .package(url: "https://github.com/features-vote/features-vote-sdk.git", from: "2.0.0")
 ]
 ```
 
@@ -45,7 +45,7 @@ Or in Xcode: **File > Add Package Dependencies** and enter the repository URL.
 ### Requirements
 
 - iOS 16.0+
-- macOS 12.0+
+- macOS 13.0+
 - Swift 5.9+
 
 ---
@@ -262,8 +262,8 @@ FeaturesVote.localization = Localization(
 | | `adminBadge` | "Admin" |
 | **Errors** | `errorTitle` | "Error" |
 | | `retryButton` | "Try Again" |
-| | `networkError` | "Connection error..." |
-| | `genericError` | "An error occurred..." |
+| | `networkError` | "Connection error. Please check your internet connection." |
+| | `genericError` | "An error occurred. Please try again." |
 | **Loading** | `loading` | "Loading..." |
 | **Authentication** | `anonymousPrompt` | "Sign in to vote and comment" |
 | | `loginButton` | "Sign In" |
@@ -291,18 +291,13 @@ FeaturesVote.config = Configuration(
         allowAnonymousComments: true,    // Allow anonymous users to comment
         requireEmailForCreate: false,    // Require email when creating features
         enableOptimisticUpdates: true,   // Update UI immediately, revert on error
-        cacheTimeout: 300,               // Cache timeout in seconds (5 minutes)
         confirmVoting: false,            // Show confirmation before voting
         confirmUnsubscribe: true         // Show confirmation before unsubscribing
     ),
     buttons: Configuration.Buttons(
         upvoteIcon: Image(systemName: "arrow.up"),
-        downvoteIcon: Image(systemName: "arrow.down"),
-        commentIcon: Image(systemName: "bubble.left"),
-        shareIcon: Image(systemName: "square.and.arrow.up"),
         subscribeIcon: Image(systemName: "bell"),
-        subscribedIcon: Image(systemName: "bell.fill"),
-        createIcon: Image(systemName: "plus")
+        subscribedIcon: Image(systemName: "bell.fill")
     )
 )
 ```
@@ -329,7 +324,6 @@ FeaturesVote.config = Configuration(
 | `allowAnonymousComments` | `Bool` | `true` | Allow anonymous users to comment |
 | `requireEmailForCreate` | `Bool` | `false` | Require email when creating features |
 | `enableOptimisticUpdates` | `Bool` | `true` | Update UI immediately, revert on error |
-| `cacheTimeout` | `TimeInterval` | `300` | Cache timeout in seconds |
 | `confirmVoting` | `Bool` | `false` | Show confirmation dialog before voting |
 | `confirmUnsubscribe` | `Bool` | `true` | Show confirmation before unsubscribing |
 
@@ -338,12 +332,8 @@ FeaturesVote.config = Configuration(
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
 | `upvoteIcon` | `Image` | `arrow.up` | Icon for upvote button |
-| `downvoteIcon` | `Image` | `arrow.down` | Icon for downvote button |
-| `commentIcon` | `Image` | `bubble.left` | Icon for comment button |
-| `shareIcon` | `Image` | `square.and.arrow.up` | Icon for share button |
 | `subscribeIcon` | `Image` | `bell` | Icon for subscribe button |
 | `subscribedIcon` | `Image` | `bell.fill` | Icon for subscribed state |
-| `createIcon` | `Image` | `plus` | Icon for create button |
 
 ---
 
@@ -519,14 +509,7 @@ import FeaturesVote
 
 struct RoadmapScreen: View {
     var body: some View {
-        RoadmapView(
-            viewModel: RoadmapViewModel(
-                slug: "your-project-slug",
-                featureService: FeatureService(),
-                voteService: VoteService(),
-                userService: UserService()
-            )
-        )
+        FeaturesVote.RoadmapView()
     }
 }
 ```
@@ -593,13 +576,14 @@ public struct Feature: Codable, Identifiable, Hashable {
 Enumeration of possible feature statuses.
 
 ```swift
-public enum FeatureStatus: String, Codable, CaseIterable {
+public enum FeatureStatus: String, Codable, CaseIterable, Identifiable {
     case pending = "Pending"
     case approved = "Approved"
     case inProgress = "In Progress"
     case done = "Done"
     case rejected = "Rejected"
 
+    public var id: String            // returns rawValue
     public var displayName: String
     public var iconName: String      // SF Symbol name
     public var isOpen: Bool          // true if not done/rejected
@@ -820,6 +804,11 @@ class MyViewController: UIViewController {
         let changelogVC = FeaturesVote.changelogViewController
         navigationController?.pushViewController(changelogVC, animated: true)
     }
+
+    func showRoadmap() {
+        let roadmapVC = FeaturesVote.roadmapViewController
+        navigationController?.pushViewController(roadmapVC, animated: true)
+    }
 }
 ```
 
@@ -831,6 +820,7 @@ class MyViewController: UIViewController {
 | `featureDetailViewController(for:)` | `UIViewController` | Feature detail view controller |
 | `createFeatureViewController(onSuccess:)` | `UIViewController` | Create feature view controller |
 | `changelogViewController` | `UIViewController` | Changelog view controller |
+| `roadmapViewController` | `UIViewController` | Roadmap view controller |
 
 ---
 
@@ -868,10 +858,10 @@ LoadingView()
 
 ### ErrorView
 
-Error display with retry button.
+Error display with retry button. The `error` parameter is typed as `APIError`, and `theme` is optional.
 
 ```swift
-ErrorView(error: someError) {
+ErrorView(error: apiError, theme: theme) {
     // Retry action
 }
 ```
@@ -889,23 +879,29 @@ EmptyStateView(
 
 ### TagsView
 
-Horizontal scrolling tag display.
+Inline tag display (an `HStack` of colored capsules). Pass `availableTags` to pick up each tag's configured color.
 
 ```swift
 TagsView(tags: ["Feature", "Enhancement"])
+
+// With themed colors from the project's tags
+TagsView(tags: ["Feature"], availableTags: project.customization.tags ?? [])
 ```
 
 ### HTMLText
 
-Renders HTML content as styled text.
+Renders HTML content as styled text. Embedded links default to the configured theme's `primaryColor` (override via `linkColor`).
 
 ```swift
 HTMLText(htmlString, fontSize: 16)
+
+// Override the link color
+HTMLText(htmlString, fontSize: 16, linkColor: .blue)
 ```
 
 ### MarkdownView
 
-Renders Markdown content with image support.
+Renders Markdown content with image support. Lives in `Views/Changelog/` and is used for release notes. For lightweight inline Markdown, see `MarkdownText(_:font:color:)` in `Views/Common/`.
 
 ```swift
 MarkdownView(markdown: markdownString, theme: theme)
@@ -945,7 +941,7 @@ ImageViewerOverlay(imageURL: url) {
 let color = Color(hex: "#FF5733")
 let color2 = Color(hex: "FF5733")
 
-// Get hex string
+// Get hex string (optional — returns nil if the color can't be resolved)
 let hex = color.hexString  // "#FF5733"
 
 // Get contrasting text color (white or black)
@@ -1019,7 +1015,7 @@ The SDK supports both iOS and macOS with platform-specific optimizations:
 ### Minimum Requirements
 
 - **iOS**: 16.0+
-- **macOS**: 12.0+
+- **macOS**: 13.0+
 - **Swift**: 5.9+
 
 ---
@@ -1034,6 +1030,7 @@ The SDK communicates with the Features.Vote API at `https://features.vote/api`. 
 |----------|--------|-------------|
 | `/public/project` | GET | Get project configuration |
 | `/public/features` | GET | List all features |
+| `/public/feature` | GET | Get a single feature by id |
 | `/public/features/create` | POST | Create new feature |
 | `/public/upvote` | POST | Add vote to feature |
 | `/public/downvote` | POST | Remove vote from feature |
@@ -1046,6 +1043,7 @@ The SDK communicates with the Features.Vote API at `https://features.vote/api`. 
 | `/public/releases` | GET | List all releases |
 | `/public/posts-by-release` | GET | Get features for release |
 | `/public/user` | GET | Get user information |
+| `/public/user-token` | POST | Validate a JWT user token |
 
 ---
 

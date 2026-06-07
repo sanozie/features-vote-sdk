@@ -38,7 +38,7 @@ The FeaturesVote Swift SDK is a native iOS/macOS library that provides UI compon
 
 | Component | Technology | Version |
 |-----------|------------|---------|
-| UI Framework | SwiftUI | iOS 16+ / macOS 12+ |
+| UI Framework | SwiftUI | iOS 16+ / macOS 13+ |
 | Language | Swift | 5.9+ |
 | Package Manager | Swift Package Manager | Built-in |
 | Networking | URLSession | Foundation |
@@ -53,7 +53,7 @@ let package = Package(
     name: "FeaturesVote",
     platforms: [
         .iOS(.v16),
-        .macOS(.v12)
+        .macOS(.v13)
     ],
     products: [
         .library(
@@ -175,9 +175,11 @@ Contains all customization-related structures:
 
 | File | Purpose |
 |------|---------|
-| `Configuration.swift` | UI, behavior, and button configuration options |
+| `Configuration.swift` | Nested options: `UI` (badges, tags, avatars, etc.), `Behavior` (anonymous voting/comments, optimistic updates, `confirmVoting`, `confirmUnsubscribe`), and `Buttons` (customizable `upvoteIcon`/`subscribeIcon`/`subscribedIcon`) |
 | `Theme.swift` | Visual styling (colors, fonts, corner radius) |
 | `Localization.swift` | All user-facing text strings |
+
+> **Note:** Every `Configuration` option is actively enforced by the views/view models, and is covered by unit tests (see [Building & Testing](#building--testing)).
 
 ### `/Models`
 
@@ -284,6 +286,7 @@ Helper code:
 | File | Contents |
 |------|----------|
 | `Extensions.swift` | Color, Date, String, View extensions |
+| `Logger.swift` | `FVLog` — internal logging via Apple's unified logging (`os.log`); leveled (`debug`/`info`/`warning`/`error`/`none`) with convenience `request`/`response` network helpers, and categorized (`network`/`ui`/`data`/`general`) |
 | `UUIDManager.swift` | Anonymous user ID management |
 
 ---
@@ -358,11 +361,9 @@ The networking layer uses:
 **Key Features:**
 
 ```swift
-// Generic request method
-func request<T: Decodable>(
-    endpoint: APIEndpoint,
-    body: Encodable? = nil
-) async throws -> T
+// Generic request methods (two overloads: GET-style without a body, and with a body)
+func request<T: Decodable>(_ endpoint: APIEndpoint) async throws -> T
+func request<T: Decodable>(_ endpoint: APIEndpoint, body: Encodable) async throws -> T
 
 // Date decoding strategy with fallbacks
 let dateFormatter = ISO8601DateFormatter()
@@ -512,6 +513,17 @@ swift test
 # Run specific test
 swift test --filter FeaturesVoteTests.SomeTestClass
 ```
+
+The test target (`Tests/FeaturesVoteTests/`) covers the view models against mocked services:
+
+| File | Covers |
+|------|--------|
+| `VotingBoardViewModelTests.swift` | Voting board state, filtering, optimistic vote flow |
+| `FeatureDetailViewModelTests.swift` | Feature detail, comments, subscribe state |
+| `CommentsViewModelTests.swift` | Comment loading, posting, reactions |
+| `CreateFeatureViewModelTests.swift` | Create-feature validation and submission |
+| `Mock*Service.swift` | Stubbed `Feature`/`Vote`/`Comment`/`Subscription` services |
+| `TestFixtures.swift` | Shared sample models for tests |
 
 ### Xcode
 
@@ -809,9 +821,9 @@ open FeaturesVoteTestApp.xcodeproj
 ```
 
 The test app demonstrates:
-- All SDK widgets (VotingBoard, FeatureDetail, CreateFeature, Changelog)
-- Theme and configuration customization
-- UIKit integration via ViewControllers
+- All SDK widgets (VotingBoard, Roadmap, Changelog, CreateFeature; FeatureDetail via card tap)
+- Theme and configuration customization (every `Configuration.UI`/`Behavior` option, live)
+- UIKit integration via ViewControllers (board, roadmap, changelog, create)
 - User management
 
 For detailed test app documentation, see [TestApp/README.md](./TestApp/README.md).

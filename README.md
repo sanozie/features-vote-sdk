@@ -44,7 +44,7 @@ https://github.com/features-vote/features-vote-sdk.git
 Or add it to your `Package.swift`:
 
 ```swift
-.package(url: "https://github.com/features-vote/features-vote-sdk.git", from: "1.1.0")
+.package(url: "https://github.com/features-vote/features-vote-sdk.git", from: "2.0.0")
 ```
 
 ## 2. Configure Features.Vote with your project slug.
@@ -195,14 +195,18 @@ FeaturesVote.config = Configuration(
         allowAnonymousComments: true,
         requireEmailForCreate: false,
         enableOptimisticUpdates: true,   // update UI instantly, revert on error
-        cacheTimeout: 300,               // seconds
         confirmVoting: false,
         confirmUnsubscribe: true
+    ),
+    buttons: Configuration.Buttons(
+        upvoteIcon: Image(systemName: "arrow.up"),
+        subscribeIcon: Image(systemName: "bell"),
+        subscribedIcon: Image(systemName: "bell.fill")
     )
 )
 ```
 
-Vote, comment, share, subscribe, and create button icons are customizable too via `Configuration.Buttons`.
+The vote, subscribe, and subscribed-state button icons are customizable via `Configuration.Buttons`.
 
 ---
 

@@ -21,7 +21,7 @@ This is a demonstration and testing application for the FeaturesVote Swift SDK. 
 
 The FeaturesVote Test App is an iOS application that:
 
-- **Demonstrates** all FeaturesVote SDK widgets (VotingBoard, FeatureDetail, CreateFeature, Changelog)
+- **Demonstrates** all FeaturesVote SDK widgets (VotingBoard, Roadmap, Changelog, CreateFeature; FeatureDetail via card tap)
 - **Tests** SDK functionality including voting, comments, subscriptions, and user management
 - **Validates** both SwiftUI and UIKit integration patterns
 - **Provides** a reference implementation for SDK configuration and theming
@@ -51,6 +51,7 @@ For detailed information on SDK widgets and parameters used in this test app:
 - **FeatureDetailView** - See [DOCUMENTATION.md#featuredetailview](../DOCUMENTATION.md#featuredetailview)
 - **CreateFeatureView** - See [DOCUMENTATION.md#createfeatureview](../DOCUMENTATION.md#createfeatureview)
 - **ChangelogView** - See [DOCUMENTATION.md#changelogview](../DOCUMENTATION.md#changelogview)
+- **RoadmapView** - See [DOCUMENTATION.md#roadmapview](../DOCUMENTATION.md#roadmapview)
 - **Theme Configuration** - See [DOCUMENTATION.md#theme-customization](../DOCUMENTATION.md#theme-customization)
 - **Localization** - See [DOCUMENTATION.md#localization](../DOCUMENTATION.md#localization)
 - **User Management** - See [DOCUMENTATION.md#user-management](../DOCUMENTATION.md#user-management)
@@ -82,8 +83,10 @@ TestApp/
 ### Prerequisites
 
 - **Xcode 15.0+** (for iOS 17 SDK)
-- **macOS 14.0+** (Sonoma)
+- **macOS 14.0+** (Sonoma) — to build/run this demo project
 - **A Features.Vote project slug** - Get one at [features.vote](https://features.vote)
+
+> The SDK itself supports **iOS 16.0+ / macOS 13.0+** (per `Package.swift`). The higher versions above are only what this TestApp's Xcode project targets.
 
 ### Opening the Project
 
@@ -134,22 +137,19 @@ The test app follows a simple architecture to demonstrate SDK integration:
 │                       ContentView                            │
 │                    (TabView Container)                       │
 └─────────────────────────────────────────────────────────────┘
-           │                  │                    │
-           ▼                  ▼                    ▼
-┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
-│  VotingBoard    │  │ Configuration   │  │   UIKitDemo     │
-│     View        │  │     View        │  │     View        │
-│   (SDK Tab)     │  │ (Settings Tab)  │  │  (UIKit Tab)    │
-└─────────────────┘  └─────────────────┘  └─────────────────┘
-        │                    │                     │
-        ▼                    ▼                     ▼
-┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
-│ FeaturesVote    │  │ FeaturesVote    │  │ FeaturesVote    │
-│ .VotingBoard    │  │ .theme          │  │ .votingBoard-   │
-│     View()      │  │ .config         │  │   ViewController│
-│                 │  │ .updateUser()   │  │ .createFeature- │
-│                 │  │ .clearUser()    │  │   ViewController│
-└─────────────────┘  └─────────────────┘  └─────────────────┘
+      │          │          │            │            │
+      ▼          ▼          ▼            ▼            ▼
+ ┌─────────┐ ┌─────────┐ ┌──────────┐ ┌──────────┐ ┌─────────┐
+ │  Board  │ │ Roadmap │ │Changelog │ │ Settings │ │  UIKit  │
+ │  (Tab)  │ │  (Tab)  │ │  (Tab)   │ │  (Tab)   │ │  (Tab)  │
+ └─────────┘ └─────────┘ └──────────┘ └──────────┘ └─────────┘
+      │          │          │            │            │
+      ▼          ▼          ▼            ▼            ▼
+ VotingBoard  Roadmap   Changelog   Configuration  UIKitDemo
+   View()     View()     View()         View          View
+                                    (theme/config/  (…View
+                                     user + Create   Controller
+                                     sheet)          bridges)
 ```
 
 ---
@@ -178,13 +178,15 @@ FeaturesVote.updateUser(name: "...")      // Optional: Set user name
 **Purpose**: Main container with TabView for navigating between demos
 
 **Key Responsibilities**:
-- Display VotingBoardView from SDK
-- Provide navigation to ConfigurationView
+- Display the SwiftUI VotingBoard, Roadmap, and Changelog widgets as tabs
+- Provide navigation to ConfigurationView (Settings)
 - Provide navigation to UIKitDemoView
 
 **SDK Widgets Used**:
 ```swift
-FeaturesVote.VotingBoardView()  // Main voting board widget
+FeaturesVote.VotingBoardView()  // Board tab
+FeaturesVote.RoadmapView()      // Roadmap tab
+FeaturesVote.ChangelogView()    // Changelog tab
 ```
 
 ### ConfigurationView.swift
@@ -192,18 +194,20 @@ FeaturesVote.VotingBoardView()  // Main voting board widget
 **Purpose**: Interactive playground for testing SDK configuration
 
 **Key Responsibilities**:
-- Toggle UI configuration options (status badge, comment count)
-- Change theme colors dynamically
+- Toggle every `Configuration.UI` option (status badge, comment count, tags, watermark, avatars, pull-to-refresh, max description lines)
+- Toggle every `Configuration.Behavior` option (anonymous voting/comments, require email, optimistic updates, confirm voting/unsubscribe)
+- Change theme colors dynamically (primary, background, surface)
 - Test user management (set/clear user)
+- Present the SwiftUI `CreateFeatureView` as a sheet
 
 **SDK Methods Used**:
 ```swift
-FeaturesVote.config.ui.showStatusBadge = true/false
-FeaturesVote.config.ui.showCommentCount = true/false
+FeaturesVote.config.ui.<option> = true/false
+FeaturesVote.config.behavior.<option> = ...
 FeaturesVote.theme.primaryColor = Color
 FeaturesVote.updateUser(email: "...")
-FeaturesVote.updateUser(name: "...")
 FeaturesVote.clearUser()
+FeaturesVote.CreateFeatureView(onSuccess:)  // presented as a sheet
 ```
 
 ### UIKitDemoView.swift
@@ -212,14 +216,16 @@ FeaturesVote.clearUser()
 
 **Key Responsibilities**:
 - Present VotingBoardViewController
-- Present CreateFeatureViewController
+- Present RoadmapViewController
 - Present ChangelogViewController
+- Present CreateFeatureViewController
 
 **SDK Methods Used**:
 ```swift
 FeaturesVote.votingBoardViewController      // UIViewController for voting board
-FeaturesVote.createFeatureViewController()  // UIViewController for create feature
+FeaturesVote.roadmapViewController          // UIViewController for roadmap
 FeaturesVote.changelogViewController        // UIViewController for changelog
+FeaturesVote.createFeatureViewController()  // UIViewController for create feature
 ```
 
 ---
@@ -241,25 +247,49 @@ Demonstrates the main SDK widget:
 | Navigation | Tap feature to see detail view |
 | Feature Detail | Full detail with comments, subscribe, share |
 
-### Tab 2: Settings (Configuration)
+### Tab 2: Roadmap (SwiftUI)
+
+Demonstrates the Kanban roadmap widget:
+
+| Feature | Description |
+|---------|-------------|
+| Status Columns | Features grouped by status (Pending → Done) |
+| Voting | Vote on cards directly from the board |
+| Detail Sheet | Tap a card to open its detail view |
+| Layout | Horizontal scroll on iOS, grid on macOS |
+
+### Tab 3: Changelog (SwiftUI)
+
+Demonstrates the changelog widget:
+
+| Feature | Description |
+|---------|-------------|
+| Release List | Product releases with version, title, date |
+| Markdown | Release notes rendered as Markdown |
+| Detail | Tap a release to view full notes and linked features |
+
+### Tab 4: Settings (Configuration)
 
 Demonstrates SDK configuration:
 
 | Feature | Description |
 |---------|-------------|
-| UI Toggles | Toggle status badge, comment count visibility |
-| Theme Color | Color picker for primary color |
+| UI Toggles | Every `Configuration.UI` option (badges, tags, avatars, watermark, etc.) |
+| Behavior Toggles | Every `Configuration.Behavior` option (anonymous, optimistic, confirm dialogs) |
+| Theme Colors | Color pickers for primary, background, surface |
 | User Management | Set test user or clear user data |
+| Create (SwiftUI) | Present `CreateFeatureView` as a sheet |
 
-### Tab 3: UIKit (Integration)
+### Tab 5: UIKit (Integration)
 
 Demonstrates UIKit bridging:
 
 | Feature | Description |
 |---------|-------------|
 | Voting Board | Present as modal UIViewController |
-| Create Feature | Present create form as modal |
+| Roadmap | Present roadmap as modal |
 | Changelog | Present changelog as modal |
+| Create Feature | Present create form as modal |
 
 ---
 
@@ -299,7 +329,7 @@ Demonstrates UIKit bridging:
 ### Testing Changes
 
 1. Build and run on iOS Simulator
-2. Test all three tabs
+2. Test all five tabs (Board, Roadmap, Changelog, Settings, UIKit)
 3. Verify SDK functionality works as expected
 4. Test both light and dark modes
 5. Test on different device sizes
@@ -349,7 +379,7 @@ Use this checklist when validating SDK functionality:
 - [ ] ViewControllers present correctly
 - [ ] Navigation works within presented VCs
 - [ ] Dismissal works
-- [ ] All three VCs function properly
+- [ ] All four VCs function properly (Voting Board, Roadmap, Changelog, Create Feature)
 
 ### Visual Tests
 - [ ] Light mode appearance

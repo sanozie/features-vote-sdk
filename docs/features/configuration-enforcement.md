@@ -16,7 +16,7 @@ FeaturesVote.config = Configuration(
 
 When set to `false`, anonymous users see a "Sign In Required" alert when tapping the vote button. The alert message can be customized via the server-side `disabledAnonMessage` project setting.
 
-**Server override:** `Customization.isAnonDisabled = true` blocks anonymous actions regardless of this local config.
+**Server override:** `Customization.isAnonDisabled = true` blocks anonymous voting and commenting regardless of this local config. (It does not gate feature creation.)
 
 ---
 
@@ -76,7 +76,7 @@ FeaturesVote.config = Configuration(
 )
 ```
 
-When `true`, tapping the vote button shows "Are you sure you want to cast your vote?" with Vote/Cancel options.
+When `true`, tapping the vote button shows "Are you sure you want to cast your vote for this feature?" with Vote/Cancel options.
 
 ---
 
@@ -142,6 +142,42 @@ FeaturesVote.config = Configuration(
 )
 ```
 
+---
+
+### `showStatusBadge` (default: `true`)
+
+Controls whether the colored status badge (Pending / In Progress / etc.) appears on feature rows. Enforced in `FeatureRowView`.
+
+```swift
+FeaturesVote.config = Configuration(
+    ui: .init(showStatusBadge: false)
+)
+```
+
+---
+
+### `showTags` (default: `true`)
+
+Controls whether tag chips appear on feature rows and roadmap cards. Enforced in `FeatureRowView` and `RoadmapCardView`.
+
+```swift
+FeaturesVote.config = Configuration(
+    ui: .init(showTags: false)
+)
+```
+
+---
+
+### `maxDescriptionLines` (default: `3`)
+
+Maximum number of description lines shown on a feature row before truncation. Enforced in `FeatureRowView` via `.lineLimit(...)`.
+
+```swift
+FeaturesVote.config = Configuration(
+    ui: .init(maxDescriptionLines: 5)
+)
+```
+
 ## Button Icons
 
 All button icons in the voting board and feature detail views are configurable:
@@ -156,7 +192,7 @@ FeaturesVote.config = Configuration(
 )
 ```
 
-Available button slots: `upvoteIcon`, `downvoteIcon`, `commentIcon`, `shareIcon`, `subscribeIcon`, `subscribedIcon`, `createIcon`.
+Available button slots: `upvoteIcon`, `subscribeIcon`, `subscribedIcon`. (These are the only button icons the SDK currently renders.)
 
 ## Server-Side Project Customization
 
@@ -164,7 +200,7 @@ The following `Customization` fields (returned by `/api/public/project`) affect 
 
 | Field | Effect |
 |-------|--------|
-| `isAnonDisabled` | Blocks all anonymous actions (voting, commenting, creating) regardless of local config |
+| `isAnonDisabled` | Blocks anonymous voting and commenting regardless of local config (does not affect feature creation) |
 | `disabledAnonMessage` | Custom message shown when an anonymous user is blocked |
 | `hideWatermark` | Hides the "Powered by Features.Vote" watermark |
 | `isInProgressOnTop` | When `true` (default), pins in-progress features to the top of the voting board |

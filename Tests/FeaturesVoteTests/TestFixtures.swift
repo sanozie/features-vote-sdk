@@ -157,7 +157,6 @@ extension Configuration {
                 allowAnonymousComments: allowAnonymousComments,
                 requireEmailForCreate: requireEmailForCreate,
                 enableOptimisticUpdates: enableOptimisticUpdates,
-                cacheTimeout: 300,
                 confirmVoting: confirmVoting,
                 confirmUnsubscribe: confirmUnsubscribe
             ),
