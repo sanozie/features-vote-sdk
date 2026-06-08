@@ -266,9 +266,10 @@ FeaturesVote.localization.openTab = NSLocalizedString("board.open", comment: "")
 - macOS 13+
 - Swift 5.9+ · Xcode 15+
 
-### Example Project
+### Example Projects
 
-Check out the [`TestApp`](./TestApp/FeaturesVoteTestApp/) directory for a complete, working example app that exercises every view.
+- **iOS** — [`TestApp/FeaturesVoteTestApp`](./TestApp/FeaturesVoteTestApp/): a complete Xcode SwiftUI app that exercises every view.
+- **macOS** — [`TestApp/FeaturesVoteMacExample`](./TestApp/FeaturesVoteMacExample/): a SwiftPM executable you can launch with `swift run`. It covers the same widgets (minus the iOS‑only UIKit bridges) and documents every macOS‑specific hosting workaround.
 
 ### Documentation
 

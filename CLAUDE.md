@@ -80,7 +80,7 @@ Sources/FeaturesVote/
     └── Localization.swift           # All user-facing strings
 ```
 
-**Test app:** `TestApp/FeaturesVoteTestApp/` — full working example app for manual verification. Tabs: **Board** (SwiftUI `VotingBoardView`), **Roadmap** (`RoadmapView`), **Changelog** (`ChangelogView`), **Settings** (every `Theme`/`Configuration` option live + a SwiftUI `CreateFeatureView` sheet), and **UIKit** (all view-controller bridges). `FeatureDetailView` is reached by tapping a card on Board/Roadmap.
+**Test apps:** `TestApp/FeaturesVoteTestApp/` — full working **iOS** example (Xcode project) for manual verification. Tabs: **Board** (SwiftUI `VotingBoardView`), **Roadmap** (`RoadmapView`), **Changelog** (`ChangelogView`), **Settings** (every `Theme`/`Configuration` option live + a SwiftUI `CreateFeatureView` sheet), and **UIKit** (all view-controller bridges). `FeatureDetailView` is reached by tapping a card on Board/Roadmap. `TestApp/FeaturesVoteMacExample/` — the **macOS** example, a SwiftPM executable run with `swift run` (no `.xcodeproj`); same widgets minus the UIKit tab (the bridges are `#if canImport(UIKit)`, iOS-only) and carrying the macOS hosting workarounds. See `docs/features/macos-example-app.md`.
 
 ## Public API (SDK Entry Point)
 

@@ -1,6 +1,11 @@
-# FeaturesVote Test App
+# FeaturesVote Test Apps
 
-This is a demonstration and testing application for the FeaturesVote Swift SDK. It showcases all SDK widgets, tests SDK functionality, and serves as a reference implementation for integrating the SDK into your own applications.
+This directory holds demonstration / reference apps for the FeaturesVote Swift SDK. They showcase the SDK widgets, test SDK functionality, and serve as reference implementations for integrating the SDK into your own apps:
+
+- **iOS** — [`FeaturesVoteTestApp/`](./FeaturesVoteTestApp/): an Xcode SwiftUI app with a `TabView` over Board, Roadmap, Changelog, a Configuration/Theme playground, and the UIKit view‑controller bridges. Documented below.
+- **macOS** — [`FeaturesVoteMacExample/`](./FeaturesVoteMacExample/): a SwiftPM executable (`swift run`) covering the same widgets minus the iOS‑only UIKit bridges, and documenting the macOS‑specific hosting workarounds. See its own [README](./FeaturesVoteMacExample/README.md).
+
+The rest of this document describes the **iOS** app.
 
 ## Table of Contents
 
