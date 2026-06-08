@@ -13,7 +13,7 @@ Zero external dependencies. Apple-native frameworks only.
 </p>
 
 <p align="center">
-  <img src="https://ik.imagekit.io/mantatech/fv_ios_mockup_1.jpg" width="100%" alt="Feedback board and feedback form" />
+  <video src="https://github.com/user-attachments/assets/8716b879-e397-4073-ab3c-dba9a7eace24" width="100%" controls muted loop playsinline></video>
 </p>
 
 <p align="center">
