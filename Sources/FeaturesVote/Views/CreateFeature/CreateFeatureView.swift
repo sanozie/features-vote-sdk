@@ -115,6 +115,12 @@ public struct CreateFeatureView: View {
                     }
                 }
             }
+            #if os(macOS)
+            // macOS defaults Form to a label-on-left column grid with bare text
+            // fields; the grouped style matches the inset iOS layout the rest of the
+            // SDK is designed around.
+            .formStyle(.grouped)
+            #endif
             .navigationTitle(viewModel.customHeaderText ?? localization.createFeatureTitle)
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
