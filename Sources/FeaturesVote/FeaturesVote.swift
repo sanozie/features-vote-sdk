@@ -86,6 +86,21 @@ public struct FeaturesVote {
         shared.userService.setSpend(spend)
     }
 
+    /// Attach contextual metadata to posts created by this user.
+    ///
+    /// Use this to tell the app owner what context a feature request was created in —
+    /// e.g. app version, the current screen, device model, or plan tier. The values are
+    /// sent with new posts as `post_metadata` and surface in the admin dashboard.
+    ///
+    ///     FeaturesVote.updateMetadata([
+    ///         "app_version": "1.2.3",
+    ///         "page": "settings",
+    ///         "plan": "pro"
+    ///     ])
+    public static func updateMetadata(_ metadata: [String: Any]) {
+        shared.userService.setMetadata(metadata)
+    }
+
     /// Set JWT token
     public static func setToken(_ token: String) {
         shared.userService.setToken(token)

@@ -50,6 +50,17 @@ public final class UserService {
         currentUser.userSpend = spend
     }
 
+    /// Attach contextual metadata to posts created by this user (app version, page, etc.).
+    /// Serialized to a JSON string at set-time and sent as `post_metadata` on feature creation.
+    /// A non-serializable value is ignored, leaving any previously-set metadata untouched.
+    public func setMetadata(_ metadata: [String: Any]) {
+        guard JSONSerialization.isValidJSONObject(metadata),
+              let data = try? JSONSerialization.data(withJSONObject: metadata),
+              let json = String(data: data, encoding: .utf8)
+        else { return }
+        currentUser.postMetadataJSON = json
+    }
+
     /// Set JWT token (marks user as explicitly identified)
     public func setToken(_ token: String) {
         currentUser.token = token

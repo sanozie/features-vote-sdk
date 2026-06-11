@@ -10,6 +10,12 @@ public struct User: Codable, Equatable {
     public var token: String?
     public var isGoogleAuth: Bool?
 
+    /// Contextual metadata about the post creator (app version, current page, etc.),
+    /// stored pre-serialized as a JSON string and sent on feature creation as `post_metadata`.
+    /// Deliberately omitted from `CodingKeys` so decoding a server `User` never collides with
+    /// the object-vs-string shape of the wire format.
+    public var postMetadataJSON: String? = nil
+
     enum CodingKeys: String, CodingKey {
         case name
         case email
@@ -27,7 +33,8 @@ public struct User: Codable, Equatable {
         imgUrl: String? = nil,
         userSpend: Double? = nil,
         token: String? = nil,
-        isGoogleAuth: Bool? = nil
+        isGoogleAuth: Bool? = nil,
+        postMetadataJSON: String? = nil
     ) {
         self.name = name
         self.email = email
@@ -36,6 +43,7 @@ public struct User: Codable, Equatable {
         self.userSpend = userSpend
         self.token = token
         self.isGoogleAuth = isGoogleAuth
+        self.postMetadataJSON = postMetadataJSON
     }
 
     /// Whether this represents an authenticated user

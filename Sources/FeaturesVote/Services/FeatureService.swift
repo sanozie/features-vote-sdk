@@ -91,6 +91,7 @@ public final class FeatureService: FeatureServiceProtocol {
         formData.append(user?.token ?? "", forKey: "token")
         formData.append(user?.imgUrl ?? "", forKey: "img_url")
         formData.append(String(user?.userSpend ?? 0), forKey: "user_spend")
+        formData.append(user?.postMetadataJSON ?? "{}", forKey: "post_metadata")
 
         // Add image if provided
         if let imageData = imageData {
