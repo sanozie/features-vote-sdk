@@ -159,7 +159,7 @@ public struct VotingBoardView: View {
                 .frame(width: 40, height: 40)
                 .background(
                     RoundedRectangle(cornerRadius: 10)
-                        .fill(Color.white)
+                        .fill(theme.surfaceColor)
                         .shadow(color: Color.black.opacity(0.03), radius: 3, x: 0, y: 1)
                 )
                 .overlay(
@@ -220,7 +220,7 @@ public struct VotingBoardView: View {
         .padding(.vertical, 12)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color.white)
+                .fill(theme.surfaceColor)
                 .shadow(color: Color.black.opacity(0.03), radius: 4, x: 0, y: 2)
         )
         .overlay(

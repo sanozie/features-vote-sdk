@@ -105,7 +105,7 @@ public struct RoadmapCardView: View {
             RoundedRectangle(cornerRadius: theme.cornerRadius)
                 .stroke(
                     LinearGradient(
-                        colors: [Color.white.opacity(0.8), Color.gray.opacity(0.12)],
+                        colors: [Color.white.opacity(0.08), Color.gray.opacity(0.05)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),

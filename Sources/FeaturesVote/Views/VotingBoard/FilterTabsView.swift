@@ -35,7 +35,7 @@ public struct FilterTabsView: View {
         .frame(height: 40)
         .background(
             RoundedRectangle(cornerRadius: 10)
-                .fill(Color.white)
+                .fill(theme.surfaceColor)
                 .shadow(color: Color.black.opacity(0.03), radius: 3, x: 0, y: 1)
         )
         .overlay(
