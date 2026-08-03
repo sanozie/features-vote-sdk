@@ -38,7 +38,7 @@ public struct FeatureRowView: View {
                     .multilineTextAlignment(.leading)
 
                 // Description
-                HTMLText(feature.description)
+                HTMLText(feature.description, color: theme.textSecondaryColor)
                     .lineLimit(config.ui.maxDescriptionLines)
                     .fixedSize(horizontal: false, vertical: true)
                     .multilineTextAlignment(.leading)

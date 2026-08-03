@@ -47,12 +47,13 @@ public struct HTMLText: View {
         // Inject CSS so WebKit uses the system font (-apple-system = San Francisco on Apple platforms)
         // instead of the default Times New Roman it falls back to when no font is specified.
         let linkHex = linkColor.hexString ?? "#7C3AED"
+        let colorHex = color.hexString ?? "#FFFFFF"
         let styledHtml = """
         <html><head><meta charset="utf-8"><style>
         body {
             font-family: -apple-system, 'SF Pro Text', 'Helvetica Neue', sans-serif;
             font-size: \(Int(fontSize))px;
-            color: #374151;
+            color: \(colorHex);
             line-height: 1.6;
             margin: 0;
             padding: 0;
