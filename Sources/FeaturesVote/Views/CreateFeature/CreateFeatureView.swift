@@ -46,13 +46,18 @@ public struct CreateFeatureView: View {
                         #if os(iOS)
                         .textInputAutocapitalization(.sentences)
                         #endif
+                        .foregroundColor(theme.textPrimaryColor)
+                        .tint(theme.primaryColor)
 
                     TextField(localization.descriptionPlaceholder, text: $viewModel.description, axis: .vertical)
                         .lineLimit(5...10)
                         #if os(iOS)
                         .textInputAutocapitalization(.sentences)
                         #endif
+                        .foregroundColor(theme.textSecondaryColor)
+                        .tint(theme.primaryColor)
                 }
+                .listRowBackground(theme.surfaceColor)
 
                 // MARK: Image Attachment
                 Section {
@@ -84,6 +89,7 @@ public struct CreateFeatureView: View {
                 } header: {
                     Text("Attachment")
                 }
+                .listRowBackground(theme.surfaceColor)
 
                 // MARK: Tags
                 if !viewModel.availableTags.isEmpty {
@@ -94,6 +100,7 @@ public struct CreateFeatureView: View {
                             theme: theme
                         )
                     }
+                    .listRowBackground(theme.surfaceColor)
                 }
 
                 // MARK: Email required warning
