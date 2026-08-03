@@ -15,6 +15,7 @@ public struct CommentInputView: View {
             TextEditor(text: $commentText)
                 .frame(minHeight: 80)
                 .padding(8)
+                .scrollContentBackground(.hidden)
                 .background(theme.surfaceColor, in: RoundedRectangle(cornerRadius: 8))
                 .overlay(
                     RoundedRectangle(cornerRadius: 8)
