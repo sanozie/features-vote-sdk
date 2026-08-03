@@ -43,17 +43,21 @@ public struct FeatureDetailView: View {
     }
 
     public var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                subscriptionBanners
-                featureHeader
-                Divider()
-                descriptionSection
-                tagsSection
-                Divider()
-                createdBySection
-                Divider()
-                commentsSection
+        ZStack {
+            theme.backgroundColor
+                .ignoresSafeArea()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    subscriptionBanners
+                    featureHeader
+                    Divider()
+                    descriptionSection
+                    tagsSection
+                    Divider()
+                    createdBySection
+                    Divider()
+                    commentsSection
+                }
             }
         }
         #if os(iOS)
