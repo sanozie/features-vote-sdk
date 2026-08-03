@@ -28,6 +28,8 @@ public struct ChangelogView: View {
     public var body: some View {
         NavigationStack {
             ZStack {
+                theme.backgroundColor
+                    .ignoresSafeArea()
                 if viewModel.isLoading {
                     // Loading skeletons (matching compact card structure)
                     ScrollView {

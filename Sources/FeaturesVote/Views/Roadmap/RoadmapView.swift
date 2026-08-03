@@ -24,8 +24,12 @@ public struct RoadmapView: View {
 
     public var body: some View {
         NavigationStack {
-            content
-                .navigationTitle("Roadmap")
+            ZStack {
+                theme.backgroundColor
+                    .ignoresSafeArea()
+                content
+            }
+            .navigationTitle("Roadmap")
                 .toolbar {
                     ToolbarItem(placement: .primaryAction) {
                         Button {

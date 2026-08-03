@@ -36,9 +36,12 @@ public struct CreateFeatureView: View {
 
     public var body: some View {
         NavigationStack {
-            Form {
-                // MARK: Title & Description
-                Section {
+            ZStack {
+                theme.backgroundColor
+                    .ignoresSafeArea()
+                Form {
+                    // MARK: Title & Description
+                    Section {
                     TextField(localization.titlePlaceholder, text: $viewModel.title)
                         #if os(iOS)
                         .textInputAutocapitalization(.sentences)
@@ -156,6 +159,7 @@ public struct CreateFeatureView: View {
                         .scaleEffect(1.5)
                         .tint(theme.primaryColor)
                 }
+            }
             }
         }
     }
