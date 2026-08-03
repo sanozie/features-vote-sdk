@@ -32,7 +32,7 @@ extension Color {
         )
     }
 
-    /// Convert Color to hex string
+    /// Convert Color to hex string (includes alpha as #RRGGBBAA when opacity < 1)
     public var hexString: String? {
         #if canImport(UIKit)
         guard let components = UIColor(self).cgColor.components else { return nil }
@@ -43,7 +43,15 @@ extension Color {
         let r = Float(components[0])
         let g = Float(components[1])
         let b = Float(components[2])
+        let a = Float(components.count >= 4 ? components[3] : 1.0)
 
+        if a < 1.0 {
+            return String(format: "#%02lX%02lX%02lX%02lX",
+                         lroundf(r * 255),
+                         lroundf(g * 255),
+                         lroundf(b * 255),
+                         lroundf(a * 255))
+        }
         return String(format: "#%02lX%02lX%02lX",
                      lroundf(r * 255),
                      lroundf(g * 255),
