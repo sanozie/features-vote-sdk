@@ -15,14 +15,17 @@ public struct CommentInputView: View {
             TextEditor(text: $commentText)
                 .frame(minHeight: 80)
                 .padding(8)
+                .background(theme.surfaceColor, in: RoundedRectangle(cornerRadius: 8))
                 .overlay(
                     RoundedRectangle(cornerRadius: 8)
-                        .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
+                        .stroke(theme.textSecondaryColor.opacity(0.2), lineWidth: 1)
                 )
+                .foregroundColor(theme.textPrimaryColor)
+                .tint(theme.primaryColor)
                 .overlay(alignment: .topLeading) {
                     if commentText.isEmpty {
                         Text(localization.commentPlaceholder)
-                            .foregroundColor(.secondary.opacity(0.6))
+                            .foregroundColor(theme.textSecondaryColor.opacity(0.6))
                             .padding(.horizontal, 12)
                             .padding(.vertical, 16)
                             .allowsHitTesting(false)
