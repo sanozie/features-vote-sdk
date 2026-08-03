@@ -124,6 +124,7 @@ public struct CreateFeatureView: View {
             // SDK is designed around.
             .formStyle(.grouped)
             #endif
+            .scrollContentBackground(.hidden)
             .navigationTitle(viewModel.customHeaderText ?? localization.createFeatureTitle)
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
