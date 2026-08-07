@@ -31,7 +31,6 @@ public struct VotingBoardView: View {
 
                 content
             }
-            .tint(theme.primaryColor)
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Text(viewModel.project?.customization.votingBoardTitle ?? localization.votingBoardTitle)

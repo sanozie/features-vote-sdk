@@ -47,7 +47,6 @@ public struct CreateFeatureView: View {
                         .textInputAutocapitalization(.sentences)
                         #endif
                         .foregroundColor(theme.textPrimaryColor)
-                        .tint(theme.primaryColor)
 
                     TextField(localization.descriptionPlaceholder, text: $viewModel.description, axis: .vertical)
                         .lineLimit(5...10)
@@ -55,7 +54,6 @@ public struct CreateFeatureView: View {
                         .textInputAutocapitalization(.sentences)
                         #endif
                         .foregroundColor(theme.textSecondaryColor)
-                        .tint(theme.primaryColor)
                 }
                 .listRowBackground(theme.surfaceColor)
 
