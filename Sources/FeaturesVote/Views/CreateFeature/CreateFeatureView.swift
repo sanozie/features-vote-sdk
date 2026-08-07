@@ -136,13 +136,12 @@ public struct CreateFeatureView: View {
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
-            // Apply primary color to Cancel/Submit buttons and any other tinted controls
-            .tint(theme.primaryColor)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(localization.cancel) {
                         dismiss()
                     }
+                    .tint(theme.primaryColor)
                 }
 
                 ToolbarItem(placement: .confirmationAction) {
@@ -156,6 +155,7 @@ public struct CreateFeatureView: View {
                         }
                     }
                     .disabled(!viewModel.isValid || viewModel.isSubmitting)
+                    .tint(theme.primaryColor)
                 }
             }
             .disabled(viewModel.isSubmitting)
